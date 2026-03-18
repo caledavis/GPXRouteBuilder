@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GPX Route Builder</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ── LIGHT THEME (default) ── */
+  :root,
+  [data-theme="light"] {
+    --bg:          #f0f2f7;
+    --surface:     #ffffff;
+    --surface2:    #f7f8fc;
+    --border:      #d1d9e6;
+    --accent:      #16a34a;
+    --accent2:     #0891b2;
+    --accent-dim:  rgba(22,163,74,0.10);
+    --text:        #1e293b;
+    --text-dim:    #64748b;
+    --danger:      #dc2626;
+    --scrollbar:   #cbd5e1;
+    --dl-text:     #ffffff;
+    --hint-bg:     rgba(240,242,247,0.92);
+    --syn-tag:     #1d4ed8;
+    --syn-attr:    #b45309;
+    --syn-val:     #15803d;
+    --syn-comment: #94a3b8;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Space Grotesk', sans-serif;
+  }
+  /* ── DARK THEME ── */
+  [data-theme="dark"] {
+    --bg:          #0f1117;
+    --surface:     #181c27;
+    --surface2:    #1e2333;
+    --border:      #2a3050;
+    --accent:      #4ade80;
+    --accent2:     #22d3ee;
+    --accent-dim:  rgba(74,222,128,0.12);
+    --text:        #e2e8f0;
+    --text-dim:    #7c8db0;
+    --danger:      #f87171;
+    --scrollbar:   #2a3050;
+    --dl-text:     #0a1a10;
+    --hint-bg:     rgba(15,17,23,0.88);
+    --syn-tag:     #7dd3fc;
+    --syn-attr:    #fbbf24;
+    --syn-val:     #86efac;
+    --syn-comment: #4b5563;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: background 0.25s, color 0.25s;
+  }
+
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+    height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+    z-index: 1000;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
+  .logo {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .logo-text { display: flex; flex-direction: column; gap: 1px; }
+  .logo-subtitle {
+    font-family: var(--sans);
+    font-size: 10px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--text-dim);
+    line-height: 1;
+  }
+  .logo-icon {
+    width: 28px; height: 28px;
+    background: var(--accent-dim);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+
+  .header-controls { display: flex; align-items: center; gap: 10px; }
+
+  .toggle-group {
+    display: flex;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .toggle-btn {
+    padding: 6px 14px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.05em;
+    background: transparent;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .toggle-btn.active { background: var(--accent-dim); color: var(--accent); }
+
+  .snap-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .snap-toggle.active { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
+  [data-theme="dark"] .snap-toggle.active { background: rgba(34,211,238,0.08); }
+
+  .switch {
+    width: 28px; height: 16px;
+    background: var(--border);
+    border-radius: 8px;
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .switch::after {
+    content: '';
+    position: absolute;
+    width: 12px; height: 12px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+  .snap-toggle.active .switch { background: var(--accent2); }
+  .snap-toggle.active .switch::after { left: 14px; }
+
+  .split-badge {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,0,204,0.12);
+    border: 1px solid rgba(255,0,204,0.5);
+    color: #cc00aa;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  [data-theme="dark"] .split-badge { color: #ff00cc; }
+  .split-badge.visible { display: flex; }
+
+  .theme-btn {
+    width: 34px; height: 34px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+  .theme-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
+
+  .btn-download {
+    padding: 7px 16px;
+    background: var(--accent);
+    color: var(--dl-text);
+    border: none;
+    border-radius: 8px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: opacity 0.2s;
+    display: flex; align-items: center; gap: 6px;
+    white-space: nowrap;
+  }
+  .btn-download:hover { opacity: 0.85; }
+
+  .main { display: flex; flex: 1; overflow: hidden; }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    width: 310px;
+    flex-shrink: 0;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: background 0.25s, border-color 0.25s;
+  }
+
+  .sidebar-section {
+    border-bottom: 1px solid var(--border);
+    padding: 12px 14px;
+    flex-shrink: 0;
+  }
+  .sidebar-section h3 {
+    font-size: 10px;
+    font-family: var(--mono);
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  /* ── cycling overlay rows ── */
+  .overlay-rows { display: flex; flex-direction: column; gap: 5px; }
+
+  .overlay-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s, background 0.15s;
+    position: relative;
+    overflow: hidden;
+  }
+  .overlay-row:hover { border-color: var(--accent); }
+
+  .overlay-row::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 7px 0 0 7px;
+    background: var(--ov-color);
+    opacity: 0.3;
+    transition: opacity 0.2s;
+  }
+  .overlay-row.active::before { opacity: 1; }
+
+  .overlay-pip {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--ov-color);
+    box-shadow: 0 0 0 2px transparent;
+    transition: box-shadow 0.2s;
+  }
+  .overlay-row.active .overlay-pip { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ov-color) 25%, transparent); }
+
+  .overlay-label {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .overlay-row.active .overlay-label { color: var(--text); font-weight: 500; }
+
+  .overlay-switch {
+    width: 26px; height: 15px;
+    border-radius: 8px;
+    background: var(--border);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .overlay-switch::after {
+    content: '';
+    position: absolute;
+    width: 11px; height: 11px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+  .overlay-row.active .overlay-switch { background: var(--ov-color); }
+  .overlay-row.active .overlay-switch::after { left: 13px; }
+
+  .overlay-spinner {
+    width: 13px; height: 13px;
+    border: 2px solid var(--border);
+    border-top-color: var(--ov-color);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+    display: none;
+  }
+  .overlay-row.loading .overlay-spinner { display: block; }
+  .overlay-row.loading .overlay-switch  { display: none; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .overlay-note {
+    margin-top: 7px;
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--text-dim);
+    line-height: 1.5;
+    padding: 0 2px;
+  }
+
+  /* Route names toggle — sits below the overlay rows */
+  .names-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 7px;
+    padding: 6px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s;
+  }
+  .names-toggle-row:hover { border-color: var(--accent); }
+  .names-toggle-label {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+  .names-toggle-row.active .names-toggle-label { color: var(--text); font-weight: 500; }
+  .names-toggle-switch {
+    width: 26px; height: 15px;
+    border-radius: 8px;
+    background: var(--border);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .names-toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 11px; height: 11px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+  .names-toggle-row.active .names-toggle-switch { background: var(--accent2); }
+  .names-toggle-row.active .names-toggle-switch::after { left: 13px; }
+
+  /* ── waypoints ── */
+  .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  .waypoints-header {
+    padding: 12px 14px 8px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+  }
+  .waypoints-header h3 { font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; }
+  .waypoint-count { font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 10px; }
+
+  .waypoints-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .waypoints-list::-webkit-scrollbar { width: 4px; }
+  .waypoints-list::-webkit-scrollbar-track { background: transparent; }
+  .waypoints-list::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
+
+  .waypoint-item {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    margin-bottom: 6px;
+    transition: border-color 0.2s, background 0.2s;
+    cursor: pointer;
+  }
+  .waypoint-item:hover { border-color: var(--accent); }
+  .waypoint-item.selected { border-color: var(--accent2); background: rgba(8,145,178,0.06); }
+  [data-theme="dark"] .waypoint-item.selected { background: rgba(34,211,238,0.06); }
+
+  .segment-divider {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em;
+    color: #cc00aa; text-transform: uppercase;
+    padding: 6px 4px 4px; margin-bottom: 4px;
+    border-top: 1px dashed rgba(204,0,170,0.35);
+    display: flex; align-items: center; gap: 6px;
+  }
+  [data-theme="dark"] .segment-divider { color: #ff00cc; border-top-color: rgba(255,0,204,0.35); }
+
+  .wp-index {
+    width: 22px; height: 22px;
+    background: var(--accent-dim); border: 1px solid var(--accent); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 10px; font-weight: 600; color: var(--accent);
+    flex-shrink: 0;
+  }
+  .wp-info { flex: 1; min-width: 0; }
+  .wp-name-input {
+    background: transparent; border: none; color: var(--text);
+    font-family: var(--sans); font-size: 12px; font-weight: 500;
+    width: 100%; outline: none; padding: 0;
+  }
+  .wp-name-input:focus { color: var(--accent2); }
+  .wp-coords { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .wp-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .wp-btn {
+    width: 24px; height: 24px;
+    background: transparent; border: 1px solid var(--border); border-radius: 5px;
+    color: var(--text-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; transition: all 0.15s;
+  }
+  .wp-btn:hover        { border-color: var(--danger);  color: var(--danger);  background: rgba(220,38,38,0.1); }
+  .wp-btn.up:hover,
+  .wp-btn.down:hover   { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.1); }
+  [data-theme="dark"] .wp-btn.up:hover,
+  [data-theme="dark"] .wp-btn.down:hover { background: rgba(34,211,238,0.1); }
+
+  .wp-drag {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5px;
+    justify-content: center;
+    align-items: center;
+    width: 14px;
+    flex-shrink: 0;
+    cursor: grab;
+    opacity: 0.3;
+    transition: opacity 0.15s;
+    padding: 2px 0;
+    self-select: none;
+  }
+  .wp-drag:active { cursor: grabbing; }
+  .waypoint-item:hover .wp-drag { opacity: 0.6; }
+  .wp-drag span {
+    display: block;
+    width: 10px; height: 1.5px;
+    background: currentColor;
+    border-radius: 1px;
+  }
+  .waypoint-item.drag-over-top    { border-top: 2px solid var(--accent2); }
+  .waypoint-item.drag-over-bottom { border-bottom: 2px solid var(--accent2); }
+  .waypoint-item.dragging         { opacity: 0.4; }
+
+  .empty-state { padding: 24px 16px; text-align: center; color: var(--text-dim); font-size: 12px; line-height: 1.7; }
+  .empty-state .icon { font-size: 26px; margin-bottom: 8px; }
+
+  .add-btn {
+    margin: 8px 14px; padding: 8px;
+    background: var(--accent-dim); border: 1px dashed rgba(22,163,74,0.4); border-radius: 8px;
+    color: var(--accent); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+    cursor: pointer; text-align: center; transition: all 0.2s; flex-shrink: 0;
+  }
+  [data-theme="dark"] .add-btn { border-color: rgba(74,222,128,0.4); }
+  .add-btn:hover { background: rgba(22,163,74,0.2); }
+
+  #route-name {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-family: var(--sans); font-size: 13px; padding: 7px 10px;
+    outline: none; transition: border-color 0.2s, background 0.25s, color 0.25s;
+  }
+  #route-name:focus { border-color: var(--accent2); }
+
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .stat-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; transition: background 0.25s, border-color 0.25s; }
+  .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: var(--text-dim); text-transform: uppercase; }
+  .stat-value { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 3px; }
+
+  /* ── MAP ── */
+  .map-container { flex: 1; position: relative; }
+  #map { width: 100%; height: 100%; cursor: crosshair !important; }
+  #map .leaflet-interactive { cursor: crosshair !important; }
+  #map .leaflet-marker-icon { cursor: grab !important; }
+  #map .leaflet-marker-icon:active { cursor: grabbing !important; }
+  /* Greyscale applies only to the tile layer, not overlays or markers */
+  #map.greyscale .leaflet-tile-pane { filter: grayscale(1); }
+
+  .grey-btn {
+    width: 34px; height: 34px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 15px;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    opacity: 0.5;
+  }
+  .grey-btn:hover { border-color: var(--accent); background: var(--accent-dim); opacity: 1; }
+  .grey-btn.active { border-color: var(--accent2); background: rgba(8,145,178,0.1); opacity: 1; }
+  [data-theme="dark"] .grey-btn.active { background: rgba(34,211,238,0.1); }
+
+  .map-hint {
+    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    background: var(--hint-bg); border: 1px solid var(--border);
+    padding: 7px 14px; border-radius: 20px;
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    pointer-events: none; z-index: 1000; backdrop-filter: blur(6px);
+    white-space: nowrap; transition: background 0.25s;
+  }
+
+  /* ── PREVIEW PANEL ── */
+  .preview-panel {
+    width: 270px; flex-shrink: 0;
+    background: var(--surface); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+    transition: background 0.25s, border-color 0.25s;
+  }
+  .preview-header { padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .preview-header h3 { font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; }
+
+  .preview-tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .preview-tabs::-webkit-scrollbar { height: 3px; }
+  .preview-tabs::-webkit-scrollbar-thumb { background: var(--scrollbar); }
+  .preview-tab {
+    padding: 6px 14px; font-family: var(--mono); font-size: 10px; letter-spacing: 0.05em;
+    background: transparent; border: none; border-bottom: 2px solid transparent;
+    color: var(--text-dim); cursor: pointer; white-space: nowrap; transition: all 0.15s;
+  }
+  .preview-tab.active { color: #cc00aa; border-bottom-color: #cc00aa; }
+  [data-theme="dark"] .preview-tab.active { color: #ff00cc; border-bottom-color: #ff00cc; }
+
+  .preview-body { flex: 1; overflow-y: auto; padding: 12px; }
+  .preview-body::-webkit-scrollbar { width: 4px; }
+  .preview-body::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
+  pre#gpx-preview { font-family: var(--mono); font-size: 10px; line-height: 1.65; color: var(--text-dim); white-space: pre; overflow-x: auto; }
+  .xml-tag     { color: var(--syn-tag); }
+  .xml-attr    { color: var(--syn-attr); }
+  .xml-val     { color: var(--syn-val); }
+  .xml-comment { color: var(--syn-comment); font-style: italic; }
+
+  /* ── custom markers ── */
+  .custom-marker {
+    width: 28px; height: 28px;
+    border: 2.5px solid #1d6fe8; background: #fff;
+    border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700; color: #1d6fe8;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+  }
+  .custom-marker span { transform: rotate(45deg); display: block; line-height: 1; }
+  .custom-marker.first {
+    border-color: #16a34a !important; background: #ffffff !important; color: #16a34a !important;
+  }
+  .custom-marker.last {
+    border-color: #dc2626 !important; background: #fff !important; color: #dc2626 !important;
+  }
+  [data-theme="dark"] .custom-marker         { background: #fff; }
+  [data-theme="dark"] .custom-marker.first   { border-color: #4ade80 !important; color: #4ade80 !important; }
+  [data-theme="dark"] .custom-marker.last    { border-color: #f87171 !important; color: #f87171 !important; }
+
+  /* ── overlay route labels ── */
+  .route-label {
+    display: inline-block;
+    background: rgba(255,255,255,0.95);
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    padding: 3px 8px 3px 7px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    color: #1e293b;
+    white-space: nowrap;
+    width: max-content;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-shadow: 0 1px 5px rgba(0,0,0,0.18);
+    pointer-events: none;
+    line-height: 1.4;
+  }
+  [data-theme="dark"] .route-label { background: rgba(24,28,39,0.95); border-color: #2a3050; color: #e2e8f0; }
+  .route-label-icon { background: none !important; border: none !important; width: auto !important; height: auto !important; }
+
+  /* ── Routing service section ── */
+  .service-btns {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .service-btn {
+    flex: 1;
+    padding: 6px 4px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.03em;
+    color: var(--text-dim);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s;
+    white-space: nowrap;
+  }
+  .service-btn:hover { border-color: var(--accent); color: var(--text); }
+  .service-btn.active {
+    background: var(--accent-dim);
+    border-color: var(--accent);
+    color: var(--accent);
+    font-weight: 600;
+  }
+
+  .key-panel {
+    display: none;
+    flex-direction: column;
+    gap: 7px;
+  }
+  .key-panel.visible { display: flex; }
+
+  .key-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .key-input {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 6px 9px;
+    outline: none;
+    min-width: 0;
+    transition: border-color 0.2s;
+  }
+  .key-input:focus { border-color: var(--accent2); }
+  .key-input::placeholder { color: var(--text-dim); opacity: 0.7; }
+  .key-save-btn {
+    padding: 6px 11px;
+    background: var(--accent);
+    color: var(--dl-text);
+    border: none;
+    border-radius: 6px;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+  .key-save-btn:hover { opacity: 0.85; }
+
+  .key-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-family: var(--mono);
+    font-size: 10px;
+  }
+  .key-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--border);
+    transition: background 0.2s;
+  }
+  .key-dot.ok  { background: var(--accent); }
+  .key-dot.err { background: var(--danger); }
+  .key-status-text { color: var(--text-dim); flex: 1; }
+  .key-clear {
+    background: transparent;
+    border: none;
+    font-family: var(--mono);
+    font-size: 10px;
+    color: var(--text-dim);
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.15s;
+    flex-shrink: 0;
+  }
+  .key-clear:hover { color: var(--danger); }
+
+  .routing-disclaimer {
+    margin-top: 8px;
+    padding: 7px 9px;
+    background: rgba(234,179,8,0.08);
+    border: 1px solid rgba(234,179,8,0.35);
+    border-radius: 6px;
+    font-family: var(--sans);
+    font-size: 10px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  [data-theme="dark"] .routing-disclaimer {
+    background: rgba(234,179,8,0.06);
+    border-color: rgba(234,179,8,0.25);
+  }
+
+  /* ── GPX file overlay ── */
+  .gpx-upload-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    width: 100%;
+    padding: 8px 10px;
+    background: var(--accent-dim);
+    border: 1px dashed var(--accent);
+    border-radius: 7px;
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+    user-select: none;
+  }
+  .gpx-upload-label:hover { background: rgba(22,163,74,0.18); }
+  [data-theme="dark"] .gpx-upload-label:hover { background: rgba(74,222,128,0.18); }
+
+  .gpx-file-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin-top: 8px;
+    padding: 7px 10px;
+    border-radius: 7px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    transition: border-color 0.2s;
+  }
+
+  .gpx-toggle {
+    width: 26px; height: 15px;
+    border-radius: 8px;
+    background: var(--border);
+    position: relative;
+    transition: background 0.2s;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+  .gpx-toggle::after {
+    content: '';
+    position: absolute;
+    width: 11px; height: 11px;
+    background: white;
+    border-radius: 50%;
+    top: 2px; left: 2px;
+    transition: left 0.2s;
+  }
+  .gpx-file-row.active .gpx-toggle { background: var(--accent2); }
+  .gpx-file-row.active .gpx-toggle::after { left: 13px; }
+
+  .gpx-file-name {
+    flex: 1;
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    cursor: pointer;
+    transition: color 0.2s;
+  }
+  .gpx-file-row.active .gpx-file-name { color: var(--text); font-weight: 500; }
+
+  .gpx-remove {
+    width: 20px; height: 20px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+  }
+  .gpx-remove:hover { border-color: var(--danger); color: var(--danger); background: rgba(220,38,38,0.1); }
+
+  /* Leaflet overrides */
+  .leaflet-control-zoom { border: 1px solid var(--border) !important; border-radius: 8px !important; overflow: hidden; }
+  .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text-dim) !important; border-color: var(--border) !important; font-size: 16px !important; line-height: 26px !important; }
+  .leaflet-control-zoom a:hover { background: var(--surface2) !important; color: var(--accent) !important; }
+  .leaflet-control-attribution { background: var(--hint-bg) !important; color: var(--text-dim) !important; font-size: 9px !important; }
+  .leaflet-control-attribution a { color: var(--accent2) !important; }
+
+  @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+  .waypoint-item { animation: fadeIn 0.18s ease; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">🚴</div>
+    <div class="logo-text">
+      GPX ROUTE BUILDER
+      <span class="logo-subtitle">Plan a cycling trip with turn-by-turn navigation on your GPS!</span>
+    </div>
+  </div>
+  <div class="header-controls">
+    <div class="toggle-group" id="map-toggle">
+      <button class="toggle-btn active" data-map="cyclosm">CyclOSM</button>
+      <button class="toggle-btn" data-map="osm">OpenStreetMap</button>
+    </div>
+    <button class="grey-btn" id="grey-btn" title="Toggle greyscale map">◑</button>
+    <div class="snap-toggle" id="snap-toggle">
+      <div class="switch"></div>
+      SNAP TO PATH
+    </div>
+    <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
+    <button class="theme-btn" id="theme-btn" title="Toggle light / dark theme">☀️</button>
+    <button class="btn-download" id="download-btn">⬇ DOWNLOAD GPX</button>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <h3>Routing Service</h3>
+
+      <!-- Service selector -->
+      <div class="service-btns">
+        <button class="service-btn active" data-svc="valhalla">Valhalla</button>
+        <button class="service-btn" data-svc="ors">OpenRouteService</button>
+        <button class="service-btn" data-svc="graphhopper">GraphHopper</button>
+      </div>
+
+      <!-- Valhalla: no key needed -->
+      <div class="key-panel visible" id="panel-valhalla">
+        <div class="key-status">
+          <div class="key-dot ok"></div>
+          <span class="key-status-text">No API key required</span>
+        </div>
+      </div>
+
+      <!-- OpenRouteService key -->
+      <div class="key-panel" id="panel-ors">
+        <div class="key-row">
+          <input type="password" id="ors-key-input" class="key-input" placeholder="Paste ORS API key…" autocomplete="off" spellcheck="false">
+          <button class="key-save-btn" data-svc="ors">Save</button>
+        </div>
+        <div class="key-status">
+          <div class="key-dot" id="ors-key-dot"></div>
+          <span class="key-status-text" id="ors-key-status">No key saved</span>
+          <button class="key-clear" id="ors-key-clear" style="display:none">Clear</button>
+        </div>
+      </div>
+
+      <!-- GraphHopper key -->
+      <div class="key-panel" id="panel-graphhopper">
+        <div class="key-row">
+          <input type="password" id="gh-key-input" class="key-input" placeholder="Paste GraphHopper API key…" autocomplete="off" spellcheck="false">
+          <button class="key-save-btn" data-svc="graphhopper">Save</button>
+        </div>
+        <div class="key-status">
+          <div class="key-dot" id="gh-key-dot"></div>
+          <span class="key-status-text" id="gh-key-status">No key saved</span>
+          <button class="key-clear" id="gh-key-clear" style="display:none">Clear</button>
+        </div>
+      </div>
+
+      <!-- Disclaimer -->
+      <div class="routing-disclaimer">
+        ⚠ Routes are calculated by the selected service and may differ from the path drawn by your GPS device.
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>GPX Overlay</h3>
+      <input type="file" id="gpx-file-input" accept=".gpx" style="display:none">
+      <label for="gpx-file-input" class="gpx-upload-label">
+        <span>📂</span> Upload GPX file
+      </label>
+      <div id="gpx-file-row" class="gpx-file-row active" style="display:none">
+        <div class="gpx-toggle" id="gpx-toggle" title="Toggle visibility"></div>
+        <span class="gpx-file-name" id="gpx-file-name"></span>
+        <button class="gpx-remove" id="gpx-remove" title="Remove overlay">✕</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Route Name</h3>
+      <input type="text" id="route-name" value="My Route" placeholder="Route name…">
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-label">Points</div><div class="stat-value" id="stat-points">0</div></div>
+        <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <h3>Cycling Route Overlays</h3>
+      <div class="overlay-rows" id="overlay-rows">
+
+        <div class="overlay-row" id="ov-icn" style="--ov-color:#e8000d"
+             title="International cycling networks e.g. EuroVelo">
+          <div class="overlay-pip"></div>
+          <span class="overlay-label">International (ICN)</span>
+          <div class="overlay-spinner"></div>
+          <div class="overlay-switch"></div>
+        </div>
+
+        <div class="overlay-row" id="ov-ncn" style="--ov-color:#0000ff"
+             title="National cycling networks">
+          <div class="overlay-pip"></div>
+          <span class="overlay-label">National (NCN)</span>
+          <div class="overlay-spinner"></div>
+          <div class="overlay-switch"></div>
+        </div>
+
+        <div class="overlay-row" id="ov-rcn" style="--ov-color:#bb00bb"
+             title="Regional cycling networks">
+          <div class="overlay-pip"></div>
+          <span class="overlay-label">Regional (RCN)</span>
+          <div class="overlay-spinner"></div>
+          <div class="overlay-switch"></div>
+        </div>
+
+        <div class="overlay-row" id="ov-lcn" style="--ov-color:#007d00"
+             title="Local cycling networks">
+          <div class="overlay-pip"></div>
+          <span class="overlay-label">Local (LCN)</span>
+          <div class="overlay-spinner"></div>
+          <div class="overlay-switch"></div>
+        </div>
+
+      </div>
+
+      <!-- Route names toggle (affects ICN & NCN labels) -->
+      <div class="names-toggle-row active" id="names-toggle">
+        <span class="names-toggle-label">Show route names</span>
+        <div class="names-toggle-switch"></div>
+      </div>
+
+      <p class="overlay-note">Pans without re-fetching · reloads when view leaves cached area</p>
+    </div>
+
+    <div class="waypoints-section">
+      <div class="waypoints-header">
+        <h3>Via Points</h3>
+        <span class="waypoint-count" id="wp-count">0</span>
+      </div>
+      <div class="waypoints-list" id="waypoints-list">
+        <div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>
+      </div>
+      <button class="add-btn" id="clear-btn">✕ Clear All Points</button>
+    </div>
+
+  </div>
+
+  <div class="map-container">
+    <div id="map"></div>
+    <div class="map-hint">Click map to add via points · Drag markers to move</div>
+  </div>
+
+  <div class="preview-panel">
+    <div class="preview-header"><h3>GPX Preview</h3></div>
+    <div class="preview-tabs" id="preview-tabs"></div>
+    <div class="preview-body"><pre id="gpx-preview"></pre></div>
+  </div>
+
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const MAX_PER_FILE = 40;
+const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+
+const NET_CFG = {
+  icn: { color: '#e8000d', weight: 5,   opacity: 0.9,  dash: null,  showNames: true  },
+  ncn: { color: '#0000ff', weight: 4,   opacity: 0.85, dash: null,  showNames: true  },
+  rcn: { color: '#bb00bb', weight: 3,   opacity: 0.80, dash: null,  showNames: false },
+  lcn: { color: '#007d00', weight: 2.5, opacity: 0.75, dash: '5 3', showNames: false },
+};
+
+let waypoints     = [];
+let routeLayer    = null;
+let snapEnabled   = false;
+let selectedIndex = -1;
+let isDark        = false;
+let activeTab     = 0;
+
+const OV = {};
+Object.keys(NET_CFG).forEach(k => {
+  OV[k] = { enabled: false, loading: false, layer: null, allAdded: [], fetchedBbox: null };
+});
+
+/* ── Map ── */
+const cyclOSM = L.tileLayer(
+  'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
+  { maxZoom: 20, attribution: '&copy; <a href="https://www.cyclosm.org">CyclOSM</a> &amp; OpenStreetMap contributors' }
+);
+const osmStd = L.tileLayer(
+  'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+);
+
+const map = L.map('map', { center: [52.08, 4.31], zoom: 11, layers: [cyclOSM] });
+let currentTile = cyclOSM;
+
+document.querySelectorAll('#map-toggle .toggle-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#map-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    map.removeLayer(currentTile);
+    currentTile = btn.dataset.map === 'cyclosm' ? cyclOSM : osmStd;
+    map.addLayer(currentTile);
+    currentTile.bringToBack();
+  });
+});
+
+/* Smart overlay refresh: only re-fetch when view leaves cached bbox */
+map.on('moveend', () => {
+  const b = map.getBounds();
+  Object.keys(NET_CFG).forEach(k => {
+    if (!OV[k].enabled) return;
+    const fb = OV[k].fetchedBbox;
+    if (!fb ||
+        b.getSouth() < fb.s || b.getWest()  < fb.w ||
+        b.getNorth() > fb.n || b.getEast()  > fb.e) {
+      refreshOverlay(k);
+    }
+  });
+});
+
+/* ── Theme ── */
+document.getElementById('theme-btn').addEventListener('click', () => {
+  isDark = !isDark;
+  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  document.getElementById('theme-btn').textContent = isDark ? '🌙' : '☀️';
+});
+
+/* ── Greyscale map toggle ── */
+let isGreyscale = false;
+document.getElementById('grey-btn').addEventListener('click', () => {
+  isGreyscale = !isGreyscale;
+  document.getElementById('map').classList.toggle('greyscale', isGreyscale);
+  document.getElementById('grey-btn').classList.toggle('active', isGreyscale);
+});
+
+/* ── Snap toggle ── */
+document.getElementById('snap-toggle').addEventListener('click', () => {
+  snapEnabled = !snapEnabled;
+  document.getElementById('snap-toggle').classList.toggle('active', snapEnabled);
+  updateRoute();
+});
+
+/* ── Overlay toggles ── */
+document.querySelectorAll('.overlay-row').forEach(row => {
+  row.addEventListener('click', () => toggleOverlay(row.id.replace('ov-', '')));
+});
+
+/* ── Route names toggle ── */
+let showRouteNames = true;
+
+document.getElementById('names-toggle').addEventListener('click', () => {
+  showRouteNames = !showRouteNames;
+  document.getElementById('names-toggle').classList.toggle('active', showRouteNames);
+  applyNamesVisibility();
+});
+
+/* Show or hide label markers on all currently loaded layers instantly,
+   without needing to re-fetch from Overpass. */
+function applyNamesVisibility() {
+  Object.keys(NET_CFG).forEach(net => {
+    const state = OV[net];
+    if (!state.layer) return;
+    state.layer.eachLayer(sublayer => {
+      // Label markers are L.Marker with a _labelFor property set in buildLayer
+      if (sublayer._labelFor !== undefined) {
+        const el = sublayer.getElement?.();
+        if (el) el.style.display = showRouteNames ? '' : 'none';
+      }
+    });
+  });
+}
+
+function toggleOverlay(net) {
+  const state = OV[net];
+  if (state.loading) return;
+  state.enabled = !state.enabled;
+  document.getElementById('ov-' + net).classList.toggle('active', state.enabled);
+  if (!state.enabled) {
+    state.allAdded.forEach(lg => { try { map.removeLayer(lg); } catch(_) {} });
+    state.allAdded = []; state.layer = null; state.fetchedBbox = null;
+    return;
+  }
+  refreshOverlay(net);
+}
+
+async function refreshOverlay(net) {
+  const state = OV[net];
+  if (!state.enabled) return;
+  const row = document.getElementById('ov-' + net);
+  state.loading = true;
+  row.classList.add('loading');
+  try {
+    const b = map.getBounds();
+    const BUFFER = 1.0;
+    const s = b.getSouth() - BUFFER, w = b.getWest()  - BUFFER;
+    const n = b.getNorth() + BUFFER, e = b.getEast()  + BUFFER;
+    const bbox = `${s},${w},${n},${e}`;
+    const query = `[out:json][timeout:45];
+(
+  relation["route"="bicycle"]["network"="${net}"](${bbox});
+)->.routes;
+(
+  .routes;
+  way(r.routes);
+  node(w);
+)->.all;
+.all out body;`;
+    const resp = await fetch(OVERPASS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(query),
+    });
+    const data = await resp.json();
+    if (state.enabled) {
+      const newLg = buildLayer(net, data);
+      state.allAdded.forEach(lg => { try { map.removeLayer(lg); } catch(_) {} });
+      state.allAdded = [newLg]; state.layer = newLg;
+      state.fetchedBbox = { s, w, n, e };
+      newLg.addTo(map);
+      if (routeLayer) routeLayer.bringToFront();
+    }
+  } catch (err) {
+    console.warn('Overlay fetch failed for', net, err);
+  }
+  state.loading = false;
+  row.classList.remove('loading');
+}
+
+function buildLayer(net, data) {
+  const cfg   = NET_CFG[net];
+  const group = L.layerGroup();
+  const nodes = {};
+  (data.elements || []).forEach(el => { if (el.type === 'node') nodes[el.id] = [el.lat, el.lon]; });
+  const ways = {};
+  (data.elements || []).forEach(el => {
+    if (el.type === 'way' && el.nodes) {
+      const coords = el.nodes.map(nid => nodes[nid]).filter(Boolean);
+      if (coords.length >= 2) ways[el.id] = coords;
+    }
+  });
+  const labelled = new Set();
+  // Names are shown if this network has showNames=true AND the global toggle is on
+  const namesOn = cfg.showNames && showRouteNames;
+  (data.elements || []).forEach(el => {
+    if (el.type !== 'relation' || !el.members) return;
+    const routeName = el.tags?.name || el.tags?.ref || null;
+    const allCoords = [];
+    el.members.forEach(m => {
+      if (m.type === 'way' && ways[m.ref]) {
+        const wc = ways[m.ref];
+        const poly = L.polyline(wc, {
+          color: cfg.color, weight: cfg.weight, opacity: cfg.opacity,
+          dashArray: cfg.dash, lineJoin: 'round', lineCap: 'round',
+          interactive: cfg.showNames && !!routeName,  // still interactive even if names hidden
+        });
+        if (cfg.showNames && routeName) {
+          poly.bindTooltip(routeName, { permanent: false, sticky: true, direction: 'top', offset: [0, -6], className: 'route-label' });
+        }
+        poly.addTo(group);
+        allCoords.push(...wc);
+      }
+    });
+    // Permanent label marker — only for networks that support names, once per unique name
+    if (cfg.showNames && routeName && allCoords.length >= 2 && !labelled.has(routeName)) {
+      labelled.add(routeName);
+      const mid = allCoords[Math.floor(allCoords.length / 2)];
+      const lm = L.marker(mid, {
+        interactive: false,
+        icon: L.divIcon({
+          className: 'route-label-icon',
+          html: `<div class="route-label" style="border-left:3px solid ${cfg.color}">${escapeHtml(routeName)}</div>`,
+          iconSize: null, iconAnchor: [0, 10],
+        }),
+      });
+      // Tag so applyNamesVisibility can find it
+      lm._labelFor = routeName;
+      lm.addTo(group);
+      // Apply current toggle state immediately
+      if (!namesOn) {
+        // Defer until after Leaflet adds it to the DOM
+        setTimeout(() => {
+          const el = lm.getElement?.();
+          if (el) el.style.display = 'none';
+        }, 0);
+      }
+    }
+  });
+  return group;
+}
+
+/* ── Marker icons ── */
+function createIcon(i, total) {
+  const cls = i === 0 ? 'custom-marker first' : i === total - 1 ? 'custom-marker last' : 'custom-marker';
+  return L.divIcon({
+    className: '',
+    html: `<div class="${cls}"><span>${i + 1}</span></div>`,
+    iconSize: [28, 28], iconAnchor: [14, 28], popupAnchor: [0, -30],
+  });
+}
+function refreshIcons() {
+  waypoints.forEach((wp, i) => wp.marker.setIcon(createIcon(i, waypoints.length)));
+}
+
+/* ── Waypoint CRUD ── */
+function addWaypoint(lat, lng, name) {
+  const idx = waypoints.length;
+  const marker = L.marker([lat, lng], { draggable: true, icon: createIcon(idx, idx + 1) }).addTo(map);
+  marker.on('dragend', e => {
+    const p = e.target.getLatLng();
+    const i = waypoints.findIndex(w => w.marker === marker);
+    if (i >= 0) { waypoints[i].lat = p.lat; waypoints[i].lng = p.lng; updateAll(); }
+  });
+  marker.on('click', e => {
+    L.DomEvent.stopPropagation(e);
+    selectWaypoint(waypoints.findIndex(w => w.marker === marker));
+  });
+  waypoints.push({ lat, lng, name: name || `Point ${idx + 1}`, marker });
+  refreshIcons();
+  updateAll();
+}
+
+function removeWaypoint(i) {
+  map.removeLayer(waypoints[i].marker);
+  waypoints.splice(i, 1);
+  if (selectedIndex >= waypoints.length) selectedIndex = waypoints.length - 1;
+  refreshIcons();
+  updateAll();
+}
+
+function moveWaypoint(i, dir) {
+  const n = i + dir;
+  if (n < 0 || n >= waypoints.length) return;
+  [waypoints[i], waypoints[n]] = [waypoints[n], waypoints[i]];
+  refreshIcons();
+  updateAll();
+}
+
+function selectWaypoint(i) {
+  selectedIndex = i;
+  renderSidebar();
+  if (i >= 0) map.flyTo([waypoints[i].lat, waypoints[i].lng], Math.max(map.getZoom(), 15), { duration: 0.6 });
+}
+
+/* Single-click adds waypoint; double-click zooms only */
+let clickTimer = null;
+map.on('click', e => {
+  if (clickTimer) return;
+  clickTimer = setTimeout(() => { clickTimer = null; addWaypoint(e.latlng.lat, e.latlng.lng); }, 250);
+});
+map.on('dblclick', () => { if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; } });
+
+/* ── Routing service state ── */
+let activeService = localStorage.getItem('routing_service') || 'valhalla';
+
+// Initialise service button highlight
+document.querySelectorAll('.service-btn').forEach(btn => {
+  btn.classList.toggle('active', btn.dataset.svc === activeService);
+  btn.addEventListener('click', () => {
+    activeService = btn.dataset.svc;
+    localStorage.setItem('routing_service', activeService);
+    document.querySelectorAll('.service-btn').forEach(b => b.classList.toggle('active', b.dataset.svc === activeService));
+    document.querySelectorAll('.key-panel').forEach(p => p.classList.remove('visible'));
+    document.getElementById('panel-' + activeService).classList.add('visible');
+    if (snapEnabled && waypoints.length >= 2) updateRoute();
+  });
+});
+// Show correct panel on load
+document.querySelectorAll('.key-panel').forEach(p => p.classList.remove('visible'));
+document.getElementById('panel-' + activeService).classList.add('visible');
+
+/* ── Route drawing dispatcher ── */
+async function updateRoute() {
+  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+  if (waypoints.length < 2) return;
+  const coords = waypoints.map(w => [w.lat, w.lng]);
+
+  if (snapEnabled) {
+    let routed = false;
+    if (activeService === 'ors') {
+      const key = localStorage.getItem('ors_api_key') || '';
+      if (key) routed = await tryORS(coords, key);
+    } else if (activeService === 'graphhopper') {
+      const key = localStorage.getItem('gh_api_key') || '';
+      if (key) routed = await tryGraphHopper(coords, key);
+    }
+    // Valhalla is the default and the fallback for keyed services with no key saved
+    if (!routed) routed = await tryValhalla(coords);
+    if (routed) { updateGpxPreview(); return; }
+  }
+
+  // Straight-line fallback
+  routeLayer = L.polyline(coords, { color: '#ff00cc', weight: 2.5, opacity: 0.8, dashArray: '6 5', lineJoin: 'round' }).addTo(map);
+  routeLayer.bringToFront();
+  let d = 0;
+  for (let i = 0; i < coords.length - 1; i++) d += map.distance(coords[i], coords[i + 1]);
+  updateDist(d);
+  updateGpxPreview();
+}
+
+/* OpenRouteService — cycling-regular profile, cyclist-appropriate options:
+   - allow_unsuitable: true  → use paths not perfectly surfaced
+   - surface_quality_known: false → don't penalise unknown surfaces
+   - One-way restrictions are automatically relaxed for bicycles by ORS
+     on roads where cycling contra-flow is not explicitly prohibited. */
+async function tryORS(coords, apiKey) {
+  try {
+    const res = await fetch('https://api.openrouteservice.org/v2/directions/cycling-regular/geojson', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': apiKey },
+      body: JSON.stringify({
+        coordinates:  coords.map(c => [c[1], c[0]]),
+        preference:   'recommended',   // balances safety + directness
+        units:        'km',
+        geometry:     true,
+        instructions: false,
+        options: {
+          avoid_features: ['ferries', 'steps'],
+          profile_params: {
+            weightings: {
+              green:      0.8,   // prefer green/quiet routes
+              quiet:      0.5,
+            },
+            restrictions: {
+              // allow cycling wrong-way on one-ways unless explicitly prohibited
+              allow_unsuitable: true,
+              surface_quality_known: false,
+            },
+          },
+        },
+      }),
+    });
+    if (!res.ok) { console.warn('ORS', res.status); return false; }
+    const data = await res.json();
+    const feat = data.features?.[0];
+    if (!feat) return false;
+    const gc = feat.geometry.coordinates.map(c => [c[1], c[0]]);
+    drawSnappedRoute(gc);
+    document.getElementById('stat-dist').textContent = feat.properties.summary.distance.toFixed(1) + ' km';
+    return true;
+  } catch (e) { console.warn('ORS error', e); return false; }
+}
+
+/* GraphHopper — bike profile, cyclist-appropriate options:
+   - pass_through: false (allow shortcuts through contra-flow where permitted)
+   - block_area: none
+   - GraphHopper's bike profile already respects OSM bicycle=yes on one-ways
+     and will route contra-flow unless oneway:bicycle=yes/no is set. */
+async function tryGraphHopper(coords, apiKey) {
+  try {
+    const res = await fetch('https://graphhopper.com/api/1/route', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        points:            coords.map(c => [c[1], c[0]]),
+        profile:           'bike',        // uses OSM cycling tags, respects contra-flow
+        points_encoded:    false,
+        locale:            'en',
+        instructions:      false,
+        calc_points:       true,
+        pass_through:      false,
+        details:           [],
+        key:               apiKey,
+      }),
+    });
+    if (!res.ok) { console.warn('GraphHopper', res.status); return false; }
+    const data = await res.json();
+    const path = data.paths?.[0];
+    if (!path) return false;
+    const gc = path.points.coordinates.map(c => [c[1], c[0]]);
+    drawSnappedRoute(gc);
+    document.getElementById('stat-dist').textContent = (path.distance / 1000).toFixed(1) + ' km';
+    return true;
+  } catch (e) { console.warn('GraphHopper error', e); return false; }
+}
+
+/* Valhalla — bicycle costing (OSMF public instance, no key needed).
+   - use_roads: 0.3        → strongly prefer cycleways over roads
+   - use_hills: 0.3        → mild hill avoidance
+   - use_ferry: 0.5        → neutral on ferries
+   - Valhalla's bicycle costing already handles contra-flow one-ways:
+     it respects cycleway:oneway and oneway:bicycle tags, and by default
+     allows cycling the wrong way on roads where it is not prohibited. */
+async function tryValhalla(coords) {
+  try {
+    const res = await fetch('https://valhalla1.openstreetmap.de/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        locations: coords.map(c => ({ lon: c[1], lat: c[0], type: 'break' })),
+        costing: 'bicycle',
+        costing_options: {
+          bicycle: {
+            bicycle_type: 'Hybrid',  // suitable for mixed surfaces
+            use_roads:    0.3,       // prefer dedicated cycling infrastructure
+            use_hills:    0.3,       // mild avoidance of steep climbs
+            use_ferry:    0.5,       // neutral on ferries
+            use_living_streets: 0.6, // favour living streets and quiet roads
+            use_tracks:   0.5,       // willing to use tracks
+          },
+        },
+        directions_options: { units: 'km' },
+      }),
+    });
+    const data = await res.json();
+    if (!data.trip?.legs) return false;
+    const points = data.trip.legs.flatMap(leg => decodePolyline6(leg.shape));
+    drawSnappedRoute(points);
+    document.getElementById('stat-dist').textContent = data.trip.summary.length.toFixed(1) + ' km';
+    return true;
+  } catch (_) { return false; }
+}
+
+function drawSnappedRoute(latlngs) {
+  routeLayer = L.polyline(latlngs, { color: '#ff00cc', weight: 4, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
+  routeLayer.bringToFront();
+}
+
+/* Decode Valhalla polyline6 (precision 1e-6) */
+function decodePolyline6(encoded) {
+  const pts = [];
+  let i = 0, lat = 0, lng = 0;
+  while (i < encoded.length) {
+    let b, shift = 0, result = 0;
+    do { b = encoded.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lat += (result & 1) ? ~(result >> 1) : (result >> 1);
+    shift = 0; result = 0;
+    do { b = encoded.charCodeAt(i++) - 63; result |= (b & 0x1f) << shift; shift += 5; } while (b >= 0x20);
+    lng += (result & 1) ? ~(result >> 1) : (result >> 1);
+    pts.push([lat / 1e6, lng / 1e6]);
+  }
+  return pts;
+}
+
+/* ── API key management ── */
+function initKeyPanel(svc, inputId, dotId, statusId, clearId, storageKey) {
+  const input  = document.getElementById(inputId);
+  const dot    = document.getElementById(dotId);
+  const status = document.getElementById(statusId);
+  const clear  = document.getElementById(clearId);
+
+  function refresh() {
+    const k = localStorage.getItem(storageKey) || '';
+    if (k) {
+      dot.className      = 'key-dot ok';
+      status.textContent = 'Key saved (…' + k.slice(-6) + ')';
+      clear.style.display = 'inline';
+      input.value        = '';
+      input.placeholder  = 'Key saved — paste to replace';
+    } else {
+      dot.className      = 'key-dot';
+      status.textContent = 'No key saved';
+      clear.style.display = 'none';
+      input.placeholder  = input.getAttribute('data-placeholder') || 'Paste API key…';
+    }
+  }
+
+  // Save button (shared class, identified by data-svc)
+  document.querySelector(`.key-save-btn[data-svc="${svc}"]`).addEventListener('click', () => {
+    const val = input.value.trim();
+    if (!val) return;
+    localStorage.setItem(storageKey, val);
+    refresh();
+    if (snapEnabled && waypoints.length >= 2 && activeService === svc) updateRoute();
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.querySelector(`.key-save-btn[data-svc="${svc}"]`).click();
+  });
+
+  clear.addEventListener('click', () => {
+    localStorage.removeItem(storageKey);
+    refresh();
+    if (snapEnabled && waypoints.length >= 2 && activeService === svc) updateRoute();
+  });
+
+  refresh();
+}
+
+initKeyPanel('ors',         'ors-key-input', 'ors-key-dot', 'ors-key-status', 'ors-key-clear', 'ors_api_key');
+initKeyPanel('graphhopper', 'gh-key-input',  'gh-key-dot',  'gh-key-status',  'gh-key-clear',  'gh_api_key');
+
+function updateDist(m) {
+  document.getElementById('stat-dist').textContent = (m / 1000).toFixed(1) + ' km';
+}
+
+/* ── Sidebar ── */
+function renderSidebar() {
+  const list  = document.getElementById('waypoints-list');
+  const count = waypoints.length;
+  document.getElementById('wp-count').textContent    = count;
+  document.getElementById('stat-points').textContent = count;
+  if (!count) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>`;
+    document.getElementById('split-badge').classList.remove('visible');
+    return;
+  }
+  const split    = count > MAX_PER_FILE;
+  const numFiles = split ? Math.ceil(count / MAX_PER_FILE) : 1;
+  let html = '';
+  waypoints.forEach((wp, i) => {
+    if (split && i % MAX_PER_FILE === 0) {
+      const f  = Math.floor(i / MAX_PER_FILE) + 1;
+      const to = Math.min(i + MAX_PER_FILE, count);
+      html += `<div class="segment-divider">✂ FILE ${f}/${numFiles} &nbsp;·&nbsp; pts ${i + 1}–${to}</div>`;
+    }
+    html += `
+    <div class="waypoint-item${i === selectedIndex ? ' selected' : ''}" data-index="${i}" draggable="true">
+      <div class="wp-drag" title="Drag to reorder"><span></span><span></span><span></span></div>
+      <div class="wp-index">${i + 1}</div>
+      <div class="wp-info">
+        <input class="wp-name-input" value="${escapeHtml(wp.name)}" data-index="${i}" placeholder="Point name…">
+        <div class="wp-coords">${wp.lat.toFixed(5)}, ${wp.lng.toFixed(5)}</div>
+      </div>
+      <div class="wp-actions">
+        <button class="wp-btn up"   title="Move up"   onclick="moveWaypoint(${i},-1)">↑</button>
+        <button class="wp-btn down" title="Move down" onclick="moveWaypoint(${i}, 1)">↓</button>
+        <button class="wp-btn"      title="Delete"    onclick="removeWaypoint(${i})">✕</button>
+      </div>
+    </div>`;
+  });
+  list.innerHTML = html;
+
+  list.querySelectorAll('.wp-name-input').forEach(inp => {
+    inp.addEventListener('input', e => { waypoints[+e.target.dataset.index].name = e.target.value; updateGpxPreview(); });
+    inp.addEventListener('click', e => e.stopPropagation());
+  });
+  list.querySelectorAll('.waypoint-item').forEach(el => {
+    el.addEventListener('click', () => selectWaypoint(+el.dataset.index));
+  });
+
+  // ── Drag-and-drop reordering ──────────────────────────────
+  let dragSrcIdx = null;
+
+  list.querySelectorAll('.waypoint-item[draggable]').forEach(item => {
+    item.addEventListener('dragstart', e => {
+      dragSrcIdx = +item.dataset.index;
+      item.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      // Prevent the item click from firing after a drag
+      e.stopPropagation();
+    });
+
+    item.addEventListener('dragend', () => {
+      dragSrcIdx = null;
+      list.querySelectorAll('.waypoint-item').forEach(el => {
+        el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
+      });
+    });
+
+    item.addEventListener('dragover', e => {
+      e.preventDefault();
+      if (dragSrcIdx === null) return;
+      const tgtIdx = +item.dataset.index;
+      if (tgtIdx === dragSrcIdx) return;
+      // Show drop indicator above or below target
+      const rect = item.getBoundingClientRect();
+      const mid  = rect.top + rect.height / 2;
+      list.querySelectorAll('.waypoint-item').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
+      item.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
+    });
+
+    item.addEventListener('dragleave', () => {
+      item.classList.remove('drag-over-top', 'drag-over-bottom');
+    });
+
+    item.addEventListener('drop', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (dragSrcIdx === null) return;
+      const tgtIdx = +item.dataset.index;
+      if (tgtIdx === dragSrcIdx) return;
+
+      // Determine insert position: above or below target
+      const rect   = item.getBoundingClientRect();
+      const before = e.clientY < rect.top + rect.height / 2;
+
+      // Remove source from array
+      const [moved] = waypoints.splice(dragSrcIdx, 1);
+
+      // Recalculate target index after removal
+      let insertAt = tgtIdx > dragSrcIdx ? tgtIdx - 1 : tgtIdx;
+      if (!before) insertAt += 1;
+
+      waypoints.splice(insertAt, 0, moved);
+      selectedIndex = insertAt;
+      refreshIcons();
+      updateAll();
+    });
+  });
+
+  const badge = document.getElementById('split-badge');
+  if (split) { badge.classList.add('visible'); document.getElementById('split-label').textContent = `${numFiles} FILES`; }
+  else badge.classList.remove('visible');
+}
+
+/* ── GPX build ── */
+function buildGpxFiles() {
+  const base  = (document.getElementById('route-name').value || 'My Route').trim();
+  const now   = new Date().toISOString();
+  const total = waypoints.length;
+  if (total <= MAX_PER_FILE)
+    return [{ filename: sanitize(base) + '.gpx', content: gpxXml(base, now, waypoints) }];
+  const numFiles = Math.ceil(total / MAX_PER_FILE);
+  return Array.from({ length: numFiles }, (_, f) => {
+    const chunk    = waypoints.slice(f * MAX_PER_FILE, (f + 1) * MAX_PER_FILE);
+    const pad      = n => String(n).padStart(2, '0');
+    const partName = `${base} (Part ${f + 1} of ${numFiles})`;
+    const filename = `${sanitize(base)}_part${pad(f + 1)}of${pad(numFiles)}.gpx`;
+    return { filename, content: gpxXml(partName, now, chunk) };
+  });
+}
+
+function gpxXml(routeName, ts, pts) {
+  const rtepts = pts.map(wp =>
+    `    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <n>${escapeXml(wp.name)}</n>\n    </rtept>`
+  ).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1"
+     creator="GPX Route Builder"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1
+       http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <n>${escapeXml(routeName)}</n>
+    <time>${ts}</time>
+  </metadata>
+  <rte>
+    <n>${escapeXml(routeName)}</n>
+${rtepts}
+  </rte>
+</gpx>`;
+}
+
+/* ── GPX Preview ── */
+function updateGpxPreview() {
+  const files  = buildGpxFiles();
+  const tabsEl = document.getElementById('preview-tabs');
+  const pre    = document.getElementById('gpx-preview');
+  if (files.length <= 1) {
+    tabsEl.innerHTML = ''; activeTab = 0;
+    pre.innerHTML = syntaxHL(files[0]?.content || '');
+    return;
+  }
+  if (activeTab >= files.length) activeTab = 0;
+  tabsEl.innerHTML = files.map((_, i) =>
+    `<button class="preview-tab${i === activeTab ? ' active' : ''}" data-tab="${i}">Part ${i + 1}</button>`
+  ).join('');
+  tabsEl.querySelectorAll('.preview-tab').forEach(btn => {
+    btn.addEventListener('click', () => { activeTab = +btn.dataset.tab; updateGpxPreview(); });
+  });
+  pre.innerHTML = syntaxHL(files[activeTab].content);
+}
+
+function syntaxHL(xml) {
+  return xml
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/(&lt;\/?[\w:]+)/g,  '<span class="xml-tag">$1</span>')
+    .replace(/([\w:]+)=/g,        '<span class="xml-attr">$1</span>=')
+    .replace(/="([^"]*)"/g,       '="<span class="xml-val">$1</span>"')
+    .replace(/(&lt;!--[\s\S]*?--&gt;)/g, '<span class="xml-comment">$1</span>');
+}
+
+/* ── Download ── */
+document.getElementById('download-btn').addEventListener('click', () => {
+  buildGpxFiles().forEach((f, i) => {
+    setTimeout(() => {
+      const blob = new Blob([f.content], { type: 'application/gpx+xml' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = f.filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, i * 350);
+  });
+});
+
+/* ── Clear ── */
+document.getElementById('clear-btn').addEventListener('click', () => {
+  if (!waypoints.length || !confirm('Remove all waypoints?')) return;
+  waypoints.forEach(wp => map.removeLayer(wp.marker));
+  waypoints = [];
+  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+  selectedIndex = -1;
+  updateAll();
+});
+
+document.getElementById('route-name').addEventListener('input', updateGpxPreview);
+
+/* ── Master update ── */
+function updateAll() {
+  renderSidebar();
+  updateRoute();
+  updateGpxPreview();
+  if (!waypoints.length) document.getElementById('stat-dist').textContent = '0 km';
+}
+
+/* ── Utils ── */
+function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escapeXml(s)  { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&apos;'); }
+function sanitize(s)   { return s.replace(/[^a-zA-Z0-9_\- ]/g,'').replace(/\s+/g,'_') || 'route'; }
+
+/* ── GPX file overlay ── */
+let gpxOverlayLayer   = null;
+let gpxOverlayVisible = true;
+
+document.getElementById('gpx-file-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => loadGpxOverlay(ev.target.result, file.name);
+  reader.readAsText(file);
+  this.value = '';  // allow re-selecting the same file
+});
+
+function loadGpxOverlay(text, filename) {
+  if (gpxOverlayLayer) { map.removeLayer(gpxOverlayLayer); gpxOverlayLayer = null; }
+
+  let doc;
+  try { doc = new DOMParser().parseFromString(text, 'application/xml'); }
+  catch(_) { alert('Could not parse GPX file.'); return; }
+
+  const group = L.layerGroup();
+  const COLOR = '#f97316';  // orange — distinct from magenta route and cycling overlays
+
+  // Tracks
+  doc.querySelectorAll('trk').forEach(trk => {
+    const name = trk.querySelector('name')?.textContent?.trim() || null;
+    trk.querySelectorAll('trkseg').forEach(seg => {
+      const coords = [];
+      seg.querySelectorAll('trkpt').forEach(pt => {
+        const lat = parseFloat(pt.getAttribute('lat'));
+        const lon = parseFloat(pt.getAttribute('lon'));
+        if (!isNaN(lat) && !isNaN(lon)) coords.push([lat, lon]);
+      });
+      if (coords.length >= 2) {
+        const poly = L.polyline(coords, { color: COLOR, weight: 3, opacity: 0.85, lineJoin: 'round' });
+        if (name) poly.bindTooltip(name, { sticky: true, className: 'route-label' });
+        poly.addTo(group);
+      }
+    });
+  });
+
+  // Routes
+  doc.querySelectorAll('rte').forEach(rte => {
+    const name = rte.querySelector('name')?.textContent?.trim() || null;
+    const coords = [];
+    rte.querySelectorAll('rtept').forEach(pt => {
+      const lat = parseFloat(pt.getAttribute('lat'));
+      const lon = parseFloat(pt.getAttribute('lon'));
+      if (!isNaN(lat) && !isNaN(lon)) coords.push([lat, lon]);
+    });
+    if (coords.length >= 2) {
+      const poly = L.polyline(coords, { color: COLOR, weight: 3, opacity: 0.85, dashArray: '6 4', lineJoin: 'round' });
+      if (name) poly.bindTooltip(name, { sticky: true, className: 'route-label' });
+      poly.addTo(group);
+    }
+  });
+
+  // Waypoints
+  doc.querySelectorAll('wpt').forEach(wpt => {
+    const lat = parseFloat(wpt.getAttribute('lat'));
+    const lon = parseFloat(wpt.getAttribute('lon'));
+    if (isNaN(lat) || isNaN(lon)) return;
+    const name = wpt.querySelector('name')?.textContent?.trim() || null;
+    const cm = L.circleMarker([lat, lon], {
+      radius: 6, color: COLOR, fillColor: COLOR, fillOpacity: 0.75, weight: 2,
+    });
+    if (name) cm.bindTooltip(name, { className: 'route-label' });
+    cm.addTo(group);
+  });
+
+  const allLayers = [];
+  group.eachLayer(l => allLayers.push(l));
+  if (!allLayers.length) { alert('No tracks, routes or waypoints found in this file.'); return; }
+
+  gpxOverlayLayer   = group;
+  gpxOverlayVisible = true;
+  group.addTo(map);
+  if (routeLayer) routeLayer.bringToFront();
+
+  // Zoom to fit the uploaded file
+  try { map.fitBounds(L.featureGroup(allLayers).getBounds().pad(0.1)); } catch(_) {}
+
+  // Show control row
+  const row = document.getElementById('gpx-file-row');
+  row.style.display = 'flex';
+  row.classList.add('active');
+  document.getElementById('gpx-file-name').textContent = filename;
+  document.getElementById('gpx-file-name').title = filename;
+}
+
+document.getElementById('gpx-toggle').addEventListener('click', () => {
+  if (!gpxOverlayLayer) return;
+  gpxOverlayVisible = !gpxOverlayVisible;
+  const row = document.getElementById('gpx-file-row');
+  if (gpxOverlayVisible) {
+    gpxOverlayLayer.addTo(map);
+    row.classList.add('active');
+  } else {
+    map.removeLayer(gpxOverlayLayer);
+    row.classList.remove('active');
+  }
+});
+
+document.getElementById('gpx-remove').addEventListener('click', () => {
+  if (gpxOverlayLayer) { map.removeLayer(gpxOverlayLayer); gpxOverlayLayer = null; }
+  gpxOverlayVisible = true;
+  const row = document.getElementById('gpx-file-row');
+  row.style.display = 'none';
+  row.classList.add('active');
+  document.getElementById('gpx-file-name').textContent = '';
+});
+
+updateGpxPreview();
+</script>
+</body>
+</html>
