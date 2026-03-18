@@ -809,6 +809,17 @@
   }
   .gpx-remove:hover { border-color: var(--danger); color: var(--danger); background: rgba(220,38,38,0.1); }
 
+  /* Ghost marker shown when hovering over a route segment */
+  .ghost-marker {
+    width: 22px; height: 22px;
+    border: 2.5px dashed #1d6fe8;
+    background: rgba(29,111,232,0.15);
+    border-radius: 50% 50% 50% 0;
+    transform: rotate(-45deg);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    pointer-events: none;
+  }
+
   /* Leaflet overrides */
   .leaflet-control-zoom { border: 1px solid var(--border) !important; border-radius: 8px !important; overflow: hidden; }
   .leaflet-control-zoom a { background: var(--surface) !important; color: var(--text-dim) !important; border-color: var(--border) !important; font-size: 16px !important; line-height: 26px !important; }
@@ -1309,7 +1320,7 @@ document.getElementById('panel-' + activeService).classList.add('visible');
 
 /* ── Route drawing dispatcher ── */
 async function updateRoute() {
-  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+  clearRouteLayer();
   if (waypoints.length < 2) return;
   const coords = waypoints.map(w => [w.lat, w.lng]);
 
@@ -1322,18 +1333,167 @@ async function updateRoute() {
       const key = localStorage.getItem('gh_api_key') || '';
       if (key) routed = await tryGraphHopper(coords, key);
     }
-    // Valhalla is the default and the fallback for keyed services with no key saved
     if (!routed) routed = await tryValhalla(coords);
     if (routed) { updateGpxPreview(); return; }
   }
 
-  // Straight-line fallback
-  routeLayer = L.polyline(coords, { color: '#ff00cc', weight: 2.5, opacity: 0.8, dashArray: '6 5', lineJoin: 'round' }).addTo(map);
-  routeLayer.bringToFront();
+  // Straight-line fallback — draw one segment per adjacent waypoint pair
+  drawSegments(coords.map((c, i) => ({ coords: [c, coords[i + 1]], segIdx: i })).slice(0, -1));
   let d = 0;
   for (let i = 0; i < coords.length - 1; i++) d += map.distance(coords[i], coords[i + 1]);
   updateDist(d);
   updateGpxPreview();
+}
+
+function clearRouteLayer() {
+  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+  removeGhostMarker();
+}
+
+/* Draw segments — each entry is { coords: [[lat,lng],...], segIdx: i }
+   where segIdx means "inserting here goes between waypoint i and i+1". */
+function drawSegments(segments, snapped = false) {
+  const group = L.layerGroup().addTo(map);
+
+  segments.forEach(({ coords: latlngs, segIdx }) => {
+    // Visible line
+    const vis = L.polyline(latlngs, {
+      color:     '#ff00cc',
+      weight:    snapped ? 4 : 2.5,
+      opacity:   snapped ? 0.9 : 0.8,
+      dashArray: snapped ? null : '6 5',
+      lineJoin:  'round',
+      lineCap:   'round',
+      interactive: false,
+    }).addTo(group);
+
+    // Wide invisible hit-area polyline for easy interaction
+    const hit = L.polyline(latlngs, {
+      color: '#ff00cc', weight: 18, opacity: 0,
+      lineJoin: 'round', interactive: true,
+    }).addTo(group);
+
+    hit.on('mouseover', () => { vis.setStyle({ opacity: snapped ? 1 : 0.95, weight: snapped ? 5 : 4 }); });
+    hit.on('mouseout',  () => { vis.setStyle({ opacity: snapped ? 0.9 : 0.8, weight: snapped ? 4 : 2.5 }); removeGhostMarker(); });
+
+    hit.on('mousemove', e => {
+      showGhostMarker(e.latlng);
+      // Change cursor via map container
+      map.getContainer().style.cursor = 'copy';
+    });
+
+    // Click: insert waypoint at click position between segIdx and segIdx+1
+    hit.on('click', e => {
+      L.DomEvent.stopPropagation(e);
+      removeGhostMarker();
+      map.getContainer().style.cursor = '';
+      insertWaypoint(segIdx, e.latlng.lat, e.latlng.lng);
+    });
+
+    // Mousedown: begin drag-to-place
+    hit.on('mousedown', e => {
+      L.DomEvent.stopPropagation(e);
+      if (e.originalEvent.button !== 0) return;  // left button only
+      startSegmentDrag(e, segIdx);
+    });
+  });
+
+  routeLayer = group;
+  group.bringToFront?.();
+}
+
+/* ── Ghost marker ── */
+let ghostMarker = null;
+
+function showGhostMarker(latlng) {
+  if (!ghostMarker) {
+    ghostMarker = L.marker(latlng, {
+      interactive: false,
+      icon: L.divIcon({
+        className: '',
+        html: '<div class="ghost-marker"></div>',
+        iconSize: [22, 22], iconAnchor: [11, 22],
+      }),
+      zIndexOffset: 500,
+    }).addTo(map);
+  } else {
+    ghostMarker.setLatLng(latlng);
+  }
+}
+
+function removeGhostMarker() {
+  if (ghostMarker) { map.removeLayer(ghostMarker); ghostMarker = null; }
+  map.getContainer().style.cursor = '';
+}
+
+/* ── Drag-to-place on segment ── */
+function startSegmentDrag(e, segIdx) {
+  // Prevent map panning during drag
+  map.dragging.disable();
+  showGhostMarker(e.latlng);
+
+  // Insert a placeholder waypoint immediately so the user sees it move
+  const placeholderLat = e.latlng.lat;
+  const placeholderLng = e.latlng.lng;
+  insertWaypoint(segIdx, placeholderLat, placeholderLng);
+
+  // The new waypoint is now at index segIdx+1
+  const newIdx = segIdx + 1;
+
+  const onMove = evt => {
+    const latlng = map.mouseEventToLatLng(evt);
+    waypoints[newIdx].lat = latlng.lat;
+    waypoints[newIdx].lng = latlng.lng;
+    waypoints[newIdx].marker.setLatLng(latlng);
+    showGhostMarker(latlng);
+    updateRoute();   // live preview as you drag
+  };
+
+  const onUp = () => {
+    map.getContainer().removeEventListener('mousemove', onMove);
+    map.getContainer().removeEventListener('mouseup',   onUp);
+    map.dragging.enable();
+    removeGhostMarker();
+    updateAll();
+  };
+
+  map.getContainer().addEventListener('mousemove', onMove);
+  map.getContainer().addEventListener('mouseup',   onUp);
+}
+
+/* Insert a new waypoint at position insertAfterIndex+1 */
+function insertWaypoint(insertAfterIndex, lat, lng) {
+  const newIdx = insertAfterIndex + 1;
+  const name   = `Point ${newIdx + 1}`;
+
+  const marker = L.marker([lat, lng], {
+    draggable: true,
+    icon: createIcon(newIdx, waypoints.length + 1),
+  }).addTo(map);
+
+  marker.on('dragend', e => {
+    const p = e.target.getLatLng();
+    const i = waypoints.findIndex(w => w.marker === marker);
+    if (i >= 0) { waypoints[i].lat = p.lat; waypoints[i].lng = p.lng; updateAll(); }
+  });
+  marker.on('click', e => {
+    L.DomEvent.stopPropagation(e);
+    selectWaypoint(waypoints.findIndex(w => w.marker === marker));
+  });
+
+  waypoints.splice(newIdx, 0, { lat, lng, name, marker });
+
+  // Re-number all subsequent waypoint names that still have the default pattern
+  // (avoid renaming user-customised names)
+  waypoints.forEach((wp, i) => {
+    if (wp.name === `Point ${i}` || wp.name === `Point ${i + 1}` ||
+        /^Point \d+$/.test(wp.name)) {
+      wp.name = `Point ${i + 1}`;
+    }
+  });
+
+  refreshIcons();
+  updateAll();
 }
 
 /* OpenRouteService — cycling-regular profile, cyclist-appropriate options:
@@ -1450,8 +1610,39 @@ async function tryValhalla(coords) {
 }
 
 function drawSnappedRoute(latlngs) {
-  routeLayer = L.polyline(latlngs, { color: '#ff00cc', weight: 4, opacity: 0.9, lineJoin: 'round', lineCap: 'round' }).addTo(map);
-  routeLayer.bringToFront();
+  // For a snapped route we get one continuous geometry. We need to split it
+  // into per-waypoint segments so click/drag insertion works correctly.
+  // Strategy: find the geometry point closest to each intermediate waypoint
+  // and use that as the segment boundary.
+  const segments = splitSnappedRoute(latlngs);
+  drawSegments(segments, true);
+}
+
+/* Split a continuous snapped polyline into segments matching waypoint pairs.
+   Each segment covers waypoints[i] → waypoints[i+1]. */
+function splitSnappedRoute(latlngs) {
+  if (waypoints.length < 2) return [];
+  if (waypoints.length === 2) {
+    return [{ coords: latlngs, segIdx: 0 }];
+  }
+
+  // For each intermediate waypoint (not start/end), find the closest point in latlngs
+  const splits = [0]; // indices into latlngs where segments start
+  for (let wi = 1; wi < waypoints.length - 1; wi++) {
+    const wp   = waypoints[wi];
+    let best   = Infinity, bestIdx = splits[splits.length - 1];
+    for (let li = splits[splits.length - 1]; li < latlngs.length - 1; li++) {
+      const d = map.distance([wp.lat, wp.lng], latlngs[li]);
+      if (d < best) { best = d; bestIdx = li; }
+    }
+    splits.push(bestIdx);
+  }
+  splits.push(latlngs.length - 1);
+
+  return splits.slice(0, -1).map((start, i) => ({
+    coords: latlngs.slice(start, splits[i + 1] + 1),
+    segIdx: i,
+  }));
 }
 
 /* Decode Valhalla polyline6 (precision 1e-6) */
