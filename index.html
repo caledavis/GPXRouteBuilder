@@ -219,23 +219,6 @@
   }
   .theme-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
 
-  .btn-download {
-    padding: 7px 16px;
-    background: var(--accent);
-    color: var(--dl-text);
-    border: none;
-    border-radius: 8px;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    letter-spacing: 0.06em;
-    cursor: pointer;
-    transition: opacity 0.2s;
-    display: flex; align-items: center; gap: 6px;
-    white-space: nowrap;
-  }
-  .btn-download:hover { opacity: 0.85; }
-
   .main { display: flex; flex: 1; overflow: hidden; }
 
   /* ── SIDEBAR ── */
@@ -251,7 +234,8 @@
   }
   .sidebar.collapsed { width: 32px; }
   .sidebar.collapsed .sidebar-section,
-  .sidebar.collapsed .waypoints-section { display: none; }
+  .sidebar.collapsed .waypoints-section,
+  .sidebar.collapsed .sidebar-tab-pane { display: none; }
 
   .sidebar-toggle-btn {
     width: 20px; height: 20px;
@@ -276,6 +260,38 @@
     padding-top: 12px;
   }
   .sidebar.collapsed .sidebar-collapsed-tab { display: flex; }
+
+  /* ── Sidebar tabs ── */
+  .sidebar-tab-bar {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--surface);
+    padding: 0 10px 0 0;
+  }
+  .sidebar.collapsed .sidebar-tab-bar { display: none; }
+
+  .sidebar-tab {
+    flex: 1;
+    padding: 11px 0;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    color: var(--text-dim);
+    cursor: pointer;
+    transition: all 0.18s;
+    text-align: center;
+  }
+  .sidebar-tab:hover { color: var(--text); }
+  .sidebar-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  .sidebar-tab-pane { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
+  .sidebar-tab-pane.active { display: flex; }
 
   .sidebar-section {
     border-bottom: 1px solid var(--border);
@@ -814,7 +830,52 @@
     border-color: rgba(234,179,8,0.25);
   }
 
-  /* ── GPX file overlay ── */
+  /* ── Save / load routes ── */
+  .save-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .save-btn {
+    flex: 1;
+    padding: 7px 8px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-dim);
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .save-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+
+  .autosave-notice {
+    font-family: var(--mono);
+    font-size: 9.5px;
+    color: var(--text-dim);
+    margin-top: 7px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .autosave-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--accent);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.3s;
+  }
+  .autosave-dot.pulse { opacity: 1; }
+
+  /* GPX file overlay */
   .gpx-upload-label {
     display: flex;
     align-items: center;
@@ -969,7 +1030,6 @@
     </div>
     <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
     <button class="theme-btn" id="theme-btn" title="Toggle light / dark theme">☀️</button>
-    <button class="btn-download" id="download-btn">⬇ DOWNLOAD GPX</button>
   </div>
 </header>
 
@@ -977,145 +1037,150 @@
 
   <div class="sidebar" id="sidebar">
 
-    <!-- Slim tab: shown when collapsed -->
+    <!-- Slim strip: shown when collapsed -->
     <div class="sidebar-collapsed-tab">
       <button class="sidebar-toggle-btn" id="sidebar-collapsed-btn" title="Show sidebar">▶</button>
     </div>
 
-    <div class="sidebar-section">
-      <h3 style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-        Routing Service
-        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar">◀</button>
-      </h3>
-
-      <!-- Service selector -->
-      <div class="service-btns">
-        <button class="service-btn active" data-svc="valhalla">Valhalla</button>
-        <button class="service-btn" data-svc="ors">OpenRouteService</button>
-        <button class="service-btn" data-svc="graphhopper">GraphHopper</button>
-      </div>
-
-      <!-- Valhalla: no key needed -->
-      <div class="key-panel visible" id="panel-valhalla">
-        <div class="key-status">
-          <div class="key-dot ok"></div>
-          <span class="key-status-text">No API key required</span>
-        </div>
-      </div>
-
-      <!-- OpenRouteService key -->
-      <div class="key-panel" id="panel-ors">
-        <div class="key-row">
-          <input type="password" id="ors-key-input" class="key-input" placeholder="Paste ORS API key…" autocomplete="off" spellcheck="false">
-          <button class="key-save-btn" data-svc="ors">Save</button>
-        </div>
-        <div class="key-status">
-          <div class="key-dot" id="ors-key-dot"></div>
-          <span class="key-status-text" id="ors-key-status">No key saved</span>
-          <button class="key-clear" id="ors-key-clear" style="display:none">Clear</button>
-        </div>
-      </div>
-
-      <!-- GraphHopper key -->
-      <div class="key-panel" id="panel-graphhopper">
-        <div class="key-row">
-          <input type="password" id="gh-key-input" class="key-input" placeholder="Paste GraphHopper API key…" autocomplete="off" spellcheck="false">
-          <button class="key-save-btn" data-svc="graphhopper">Save</button>
-        </div>
-        <div class="key-status">
-          <div class="key-dot" id="gh-key-dot"></div>
-          <span class="key-status-text" id="gh-key-status">No key saved</span>
-          <button class="key-clear" id="gh-key-clear" style="display:none">Clear</button>
-        </div>
-      </div>
-
-      <!-- Disclaimer -->
-      <div class="routing-disclaimer">
-        ⚠ Routes are calculated by the selected service and may differ from the path drawn by your GPS device.
-      </div>
+    <!-- Tab bar -->
+    <div class="sidebar-tab-bar">
+      <button class="sidebar-tab active" data-tab="route">ROUTE</button>
+      <button class="sidebar-tab" data-tab="settings">SETTINGS</button>
+      <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar">◀</button>
     </div>
 
-    <div class="sidebar-section">
-      <h3>GPX Overlay</h3>
-      <input type="file" id="gpx-file-input" accept=".gpx" style="display:none">
-      <label for="gpx-file-input" class="gpx-upload-label">
-        <span>📂</span> Upload GPX file
-      </label>
-      <div id="gpx-file-row" class="gpx-file-row active" style="display:none">
-        <div class="gpx-toggle" id="gpx-toggle" title="Toggle visibility"></div>
-        <span class="gpx-file-name" id="gpx-file-name"></span>
-        <button class="gpx-remove" id="gpx-remove" title="Remove overlay">✕</button>
-      </div>
-    </div>
+    <!-- ═══ ROUTE TAB ═══ -->
+    <div class="sidebar-tab-pane active" id="tab-route">
 
-    <div class="sidebar-section">
-      <h3>Route Name</h3>
-      <input type="text" id="route-name" value="My Route" placeholder="Route name…">
-      <div class="stats-row">
-        <div class="stat-box"><div class="stat-label">Points</div><div class="stat-value" id="stat-points">0</div></div>
-        <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
-      </div>
-    </div>
-
-    <div class="sidebar-section">
-      <h3>Cycling Route Overlays</h3>
-      <div class="overlay-rows" id="overlay-rows">
-
-        <div class="overlay-row" id="ov-icn" style="--ov-color:#e8000d"
-             title="International cycling networks e.g. EuroVelo">
-          <div class="overlay-pip"></div>
-          <span class="overlay-label">International (ICN)</span>
-          <div class="overlay-spinner"></div>
-          <div class="overlay-switch"></div>
+      <div class="sidebar-section">
+        <h3>Save &amp; Load</h3>
+        <div class="save-row">
+          <button class="save-btn" id="export-route-btn">⬇ Export GPX</button>
+          <label class="save-btn" for="import-route-input" style="cursor:pointer;">⬆ Import GPX</label>
+          <input type="file" id="import-route-input" accept=".gpx" style="display:none">
         </div>
-
-        <div class="overlay-row" id="ov-ncn" style="--ov-color:#0000ff"
-             title="National cycling networks">
-          <div class="overlay-pip"></div>
-          <span class="overlay-label">National (NCN)</span>
-          <div class="overlay-spinner"></div>
-          <div class="overlay-switch"></div>
+        <div class="autosave-notice">
+          <div class="autosave-dot" id="autosave-dot"></div>
+          <span id="autosave-label">Auto-saved to this browser</span>
         </div>
+      </div>
 
-        <div class="overlay-row" id="ov-rcn" style="--ov-color:#bb00bb"
-             title="Regional cycling networks">
-          <div class="overlay-pip"></div>
-          <span class="overlay-label">Regional (RCN)</span>
-          <div class="overlay-spinner"></div>
-          <div class="overlay-switch"></div>
+      <div class="sidebar-section">
+        <h3>Cycling Route Overlays</h3>
+        <div class="overlay-rows" id="overlay-rows">
+          <div class="overlay-row" id="ov-icn" style="--ov-color:#e8000d" title="International cycling networks e.g. EuroVelo">
+            <div class="overlay-pip"></div>
+            <span class="overlay-label">International (ICN)</span>
+            <div class="overlay-spinner"></div>
+            <div class="overlay-switch"></div>
+          </div>
+          <div class="overlay-row" id="ov-ncn" style="--ov-color:#0000ff" title="National cycling networks">
+            <div class="overlay-pip"></div>
+            <span class="overlay-label">National (NCN)</span>
+            <div class="overlay-spinner"></div>
+            <div class="overlay-switch"></div>
+          </div>
+          <div class="overlay-row" id="ov-rcn" style="--ov-color:#bb00bb" title="Regional cycling networks">
+            <div class="overlay-pip"></div>
+            <span class="overlay-label">Regional (RCN)</span>
+            <div class="overlay-spinner"></div>
+            <div class="overlay-switch"></div>
+          </div>
+          <div class="overlay-row" id="ov-lcn" style="--ov-color:#007d00" title="Local cycling networks">
+            <div class="overlay-pip"></div>
+            <span class="overlay-label">Local (LCN)</span>
+            <div class="overlay-spinner"></div>
+            <div class="overlay-switch"></div>
+          </div>
         </div>
-
-        <div class="overlay-row" id="ov-lcn" style="--ov-color:#007d00"
-             title="Local cycling networks">
-          <div class="overlay-pip"></div>
-          <span class="overlay-label">Local (LCN)</span>
-          <div class="overlay-spinner"></div>
-          <div class="overlay-switch"></div>
+        <div class="names-toggle-row active" id="names-toggle">
+          <span class="names-toggle-label">Show route names</span>
+          <div class="names-toggle-switch"></div>
         </div>
-
+        <p class="overlay-note">Pans without re-fetching · reloads when view leaves cached area</p>
       </div>
 
-      <!-- Route names toggle (affects ICN & NCN labels) -->
-      <div class="names-toggle-row active" id="names-toggle">
-        <span class="names-toggle-label">Show route names</span>
-        <div class="names-toggle-switch"></div>
+      <div class="sidebar-section">
+        <h3>Route Name</h3>
+        <input type="text" id="route-name" value="My Route" placeholder="Route name…">
+        <div class="stats-row">
+          <div class="stat-box"><div class="stat-label">Points</div><div class="stat-value" id="stat-points">0</div></div>
+          <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
+        </div>
       </div>
 
-      <p class="overlay-note">Pans without re-fetching · reloads when view leaves cached area</p>
-    </div>
-
-    <div class="waypoints-section">
-      <div class="waypoints-header">
-        <h3>Via Points</h3>
-        <span class="waypoint-count" id="wp-count">0</span>
+      <div class="waypoints-section">
+        <div class="waypoints-header">
+          <h3>Via Points</h3>
+          <span class="waypoint-count" id="wp-count">0</span>
+        </div>
+        <div class="waypoints-list" id="waypoints-list">
+          <div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>
+        </div>
+        <button class="add-btn" id="clear-btn">✕ Clear All Points</button>
       </div>
-      <div class="waypoints-list" id="waypoints-list">
-        <div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>
-      </div>
-      <button class="add-btn" id="clear-btn">✕ Clear All Points</button>
-    </div>
 
-  </div>
+    </div><!-- /tab-route -->
+
+    <!-- ═══ SETTINGS TAB ═══ -->
+    <div class="sidebar-tab-pane" id="tab-settings">
+
+      <div class="sidebar-section">
+        <h3>Routing Service</h3>
+        <div class="service-btns">
+          <button class="service-btn active" data-svc="valhalla">Valhalla</button>
+          <button class="service-btn" data-svc="ors">OpenRouteService</button>
+          <button class="service-btn" data-svc="graphhopper">GraphHopper</button>
+        </div>
+        <div class="key-panel visible" id="panel-valhalla">
+          <div class="key-status">
+            <div class="key-dot ok"></div>
+            <span class="key-status-text">No API key required</span>
+          </div>
+        </div>
+        <div class="key-panel" id="panel-ors">
+          <div class="key-row">
+            <input type="password" id="ors-key-input" class="key-input" placeholder="Paste ORS API key…" autocomplete="off" spellcheck="false">
+            <button class="key-save-btn" data-svc="ors">Save</button>
+          </div>
+          <div class="key-status">
+            <div class="key-dot" id="ors-key-dot"></div>
+            <span class="key-status-text" id="ors-key-status">No key saved</span>
+            <button class="key-clear" id="ors-key-clear" style="display:none">Clear</button>
+          </div>
+        </div>
+        <div class="key-panel" id="panel-graphhopper">
+          <div class="key-row">
+            <input type="password" id="gh-key-input" class="key-input" placeholder="Paste GraphHopper API key…" autocomplete="off" spellcheck="false">
+            <button class="key-save-btn" data-svc="graphhopper">Save</button>
+          </div>
+          <div class="key-status">
+            <div class="key-dot" id="gh-key-dot"></div>
+            <span class="key-status-text" id="gh-key-status">No key saved</span>
+            <button class="key-clear" id="gh-key-clear" style="display:none">Clear</button>
+          </div>
+        </div>
+        <div class="routing-disclaimer">
+          ⚠ Routes are calculated by the selected service and may differ from the path drawn by your GPS device.
+        </div>
+      </div>
+
+      <div class="sidebar-section">
+        <h3>GPX Overlay</h3>
+        <input type="file" id="gpx-file-input" accept=".gpx" style="display:none">
+        <label for="gpx-file-input" class="gpx-upload-label">
+          <span>📂</span> Upload GPX file
+        </label>
+        <div id="gpx-file-row" class="gpx-file-row active" style="display:none">
+          <div class="gpx-toggle" id="gpx-toggle" title="Toggle visibility"></div>
+          <span class="gpx-file-name" id="gpx-file-name"></span>
+          <button class="gpx-remove" id="gpx-remove" title="Remove overlay">✕</button>
+        </div>
+      </div>
+
+    </div><!-- /tab-settings -->
+
+  </div><!-- /sidebar -->
 
   <div class="map-container">
     <div id="map"></div>
@@ -1222,6 +1287,16 @@ function toggleSidebar() {
 }
 document.getElementById('sidebar-toggle-btn').addEventListener('click', toggleSidebar);
 document.getElementById('sidebar-collapsed-btn').addEventListener('click', toggleSidebar);
+
+/* ── Sidebar tab switching ── */
+document.querySelectorAll('.sidebar-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar-tab-pane').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+  });
+});
 
 /* ── Greyscale map toggle ── */
 let isGreyscale = false;
@@ -2100,18 +2175,6 @@ function syntaxHL(xml) {
 }
 
 /* ── Download ── */
-document.getElementById('download-btn').addEventListener('click', () => {
-  buildGpxFiles().forEach((f, i) => {
-    setTimeout(() => {
-      const blob = new Blob([f.content], { type: 'application/gpx+xml' });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      a.href = url; a.download = f.filename; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-    }, i * 350);
-  });
-});
-
 /* ── Clear ── */
 document.getElementById('clear-btn').addEventListener('click', () => {
   if (!waypoints.length || !confirm('Remove all waypoints?')) return;
@@ -2130,6 +2193,7 @@ function updateAll() {
   updateRoute();
   updateGpxPreview();
   if (!waypoints.length) document.getElementById('stat-dist').textContent = '0 km';
+  triggerAutosave();
 }
 
 /* ── Utils ── */
@@ -2248,6 +2312,160 @@ document.getElementById('gpx-remove').addEventListener('click', () => {
   row.classList.add('active');
   document.getElementById('gpx-file-name').textContent = '';
 });
+
+/* ═══════════════════════════════════════════════════════════
+   SAVE & LOAD
+   - Auto-save: current route saved to localStorage on every
+     updateAll() call, restored automatically on page load.
+   - Named saves: up to N routes stored in localStorage,
+     listed in the sidebar.
+   - Export/Import: save/load as .json files for cross-device
+     or long-term storage.
+═══════════════════════════════════════════════════════════ */
+
+const AUTOSAVE_KEY  = 'gpx_autosave';
+
+/* ── Serialise current route to a plain object ── */
+function serialiseRoute() {
+  return {
+    name:      document.getElementById('route-name').value || 'My Route',
+    savedAt:   Date.now(),
+    waypoints: waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng, name: wp.name })),
+  };
+}
+
+/* ── Restore route from a plain object ── */
+function deserialiseRoute(data) {
+  if (!data?.waypoints?.length) return;
+
+  // Clear existing
+  waypoints.forEach(wp => map.removeLayer(wp.marker));
+  waypoints = [];
+  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+  selectedIndex = -1;
+
+  document.getElementById('route-name').value = data.name || 'My Route';
+
+  data.waypoints.forEach(wp => {
+    const idx    = waypoints.length;
+    const marker = L.marker([wp.lat, wp.lng], {
+      draggable: true,
+      icon: createIcon(idx, data.waypoints.length),
+    }).addTo(map);
+    marker.on('dragend', e => {
+      const p = e.target.getLatLng();
+      const i = waypoints.findIndex(w => w.marker === marker);
+      if (i >= 0) { waypoints[i].lat = p.lat; waypoints[i].lng = p.lng; updateAll(); }
+    });
+    marker.on('click', e => {
+      L.DomEvent.stopPropagation(e);
+      selectWaypoint(waypoints.findIndex(w => w.marker === marker));
+    });
+    waypoints.push({ lat: wp.lat, lng: wp.lng, name: wp.name, marker });
+  });
+
+  refreshIcons();
+
+  // Zoom to fit
+  if (waypoints.length >= 2) {
+    try {
+      const fg = L.featureGroup(waypoints.map(w => w.marker));
+      map.fitBounds(fg.getBounds().pad(0.15));
+    } catch(_) {}
+  } else if (waypoints.length === 1) {
+    map.setView([waypoints[0].lat, waypoints[0].lng], 14);
+  }
+
+  updateAll();
+}
+
+/* ── Auto-save ── */
+let autosaveTimer = null;
+function triggerAutosave() {
+  clearTimeout(autosaveTimer);
+  autosaveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(AUTOSAVE_KEY, JSON.stringify(serialiseRoute()));
+      // Flash the dot
+      const dot = document.getElementById('autosave-dot');
+      dot.classList.add('pulse');
+      setTimeout(() => dot.classList.remove('pulse'), 1200);
+    } catch(_) {}
+  }, 800);  // debounce — save 800ms after last change
+}
+
+/* ── Export as GPX file(s) ── */
+function exportRoute() {
+  if (!waypoints.length) { alert('No waypoints to export.'); return; }
+  buildGpxFiles().forEach((f, i) => {
+    setTimeout(() => {
+      const blob = new Blob([f.content], { type: 'application/gpx+xml' });
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href = url; a.download = f.filename; a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, i * 350);
+  });
+}
+
+/* ── Import from GPX file ── */
+document.getElementById('import-route-input').addEventListener('change', function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const doc = new DOMParser().parseFromString(ev.target.result, 'application/xml');
+      if (doc.querySelector('parsererror')) throw new Error('Parse error');
+
+      const pts = [];
+
+      // Try route points first (<rtept>), then track points (<trkpt>), then waypoints (<wpt>)
+      const rtepts = doc.querySelectorAll('rtept');
+      const trkpts = doc.querySelectorAll('trkpt');
+      const wpts   = doc.querySelectorAll('wpt');
+
+      const source = rtepts.length ? rtepts : trkpts.length ? trkpts : wpts;
+      source.forEach(pt => {
+        const lat  = parseFloat(pt.getAttribute('lat'));
+        const lon  = parseFloat(pt.getAttribute('lon'));
+        if (isNaN(lat) || isNaN(lon)) return;
+        const name = pt.querySelector('name')?.textContent?.trim() || '';
+        pts.push({ lat, lng: lon, name });
+      });
+
+      if (!pts.length) throw new Error('No points found');
+
+      // Get route name from <metadata><name> or <rte><name> or filename
+      const metaName = doc.querySelector('metadata > name')?.textContent?.trim()
+                    || doc.querySelector('rte > name')?.textContent?.trim()
+                    || doc.querySelector('trk > name')?.textContent?.trim()
+                    || file.name.replace(/\.gpx$/i, '');
+
+      deserialiseRoute({ name: metaName, waypoints: pts, savedAt: Date.now() });
+    } catch(err) {
+      alert('Could not read this GPX file. Make sure it contains route points, track points, or waypoints.');
+    }
+  };
+  reader.readAsText(file);
+  this.value = '';
+});
+
+/* ── Wire up buttons ── */
+document.getElementById('export-route-btn').addEventListener('click', exportRoute);
+
+/* ── Restore auto-save on page load ── */
+(function restoreAutosave() {
+  try {
+    const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
+    if (data?.waypoints?.length) {
+      deserialiseRoute(data);
+      document.getElementById('autosave-label').textContent =
+        'Restored from auto-save · ' + new Date(data.savedAt).toLocaleDateString(
+          undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+  } catch(_) {}
+})();
 
 updateGpxPreview();
 // Preview panel starts collapsed — let Leaflet fill the extra space immediately
