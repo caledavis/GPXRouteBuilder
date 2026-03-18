@@ -1,5 +1,5 @@
 # GPXRouteBuilder
-**Use it! **https://caledavis.github.io/GPXRouteBuilder/
+**Use it!** https://caledavis.github.io/GPXRouteBuilder/
 Plan a cycling trip with turn-by-turn navigation on your GPS.
 ## What does this do?
 There are a lot of online route planners that produce GPX _tracks_. But there are no free ones which allow you to create GPX _routes_. This one does.
