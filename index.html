@@ -206,6 +206,30 @@
   [data-theme="dark"] .split-badge { color: #ff00cc; }
   .split-badge.visible { display: flex; }
 
+  .routing-badge {
+    display: none;
+    align-items: center;
+    gap: 6px;
+    background: rgba(8,145,178,0.10);
+    border: 1px solid rgba(8,145,178,0.4);
+    color: var(--accent2);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .routing-badge.visible { display: flex; }
+  .routing-spinner {
+    width: 9px; height: 9px;
+    border: 1.5px solid rgba(8,145,178,0.3);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+  }
+
   .theme-btn {
     width: 34px; height: 34px;
     background: var(--bg);
@@ -1030,6 +1054,7 @@
       <span class="snap-label"><span class="full">SNAP TO PATH</span><span class="short">SNAP</span></span>
     </div>
     <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
+    <div class="routing-badge" id="routing-badge"><div class="routing-spinner"></div>Routing…</div>
     <button class="theme-btn" id="theme-btn" title="Toggle light / dark theme">☀️</button>
   </div>
 </header>
@@ -1551,13 +1576,18 @@ document.getElementById('panel-' + activeService).classList.add('visible');
 /* ── Route drawing dispatcher ── */
 let routeGeneration = 0;  // incremented on every updateRoute() call; async callbacks abort if stale
 
+function setRoutingIndicator(on) {
+  document.getElementById('routing-badge').classList.toggle('visible', on);
+}
+
 async function updateRoute() {
-  const gen = ++routeGeneration;  // capture this call's generation
+  const gen = ++routeGeneration;
   clearRouteLayer();
   if (waypoints.length < 2) return;
   const coords = waypoints.map(w => [w.lat, w.lng]);
 
   if (snapEnabled) {
+    setRoutingIndicator(true);
     let routed = false;
     if (activeService === 'ors') {
       const key = localStorage.getItem('ors_api_key') || '';
@@ -1567,12 +1597,11 @@ async function updateRoute() {
       if (key) routed = await tryGraphHopper(coords, key, gen);
     }
     if (!routed) routed = await tryValhalla(coords, gen);
-    // If this call is no longer current, discard — a newer call has taken over
+    setRoutingIndicator(false);
     if (gen !== routeGeneration) return;
     if (routed) { updateGpxPreview(); return; }
   }
 
-  // If no longer current (snap was toggled mid-flight), bail out
   if (gen !== routeGeneration) return;
 
   // Straight-line fallback — draw one segment per adjacent waypoint pair
@@ -1591,10 +1620,6 @@ function clearRouteLayer() {
 /* Draw segments — each entry is { coords: [[lat,lng],...], segIdx: i }
    where segIdx means "inserting here goes between waypoint i and i+1". */
 function drawSegments(segments, snapped = false) {
-  // Always clear any existing layer first — prevents orphaned layers from
-  // in-flight async calls that resolved after a newer call already drew
-  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
-
   const group = L.layerGroup().addTo(map);
 
   segments.forEach(({ coords: latlngs, segIdx }) => {
@@ -1781,22 +1806,15 @@ async function tryORS(coords, apiKey, gen) {
       headers: { 'Content-Type': 'application/json', 'Authorization': apiKey },
       body: JSON.stringify({
         coordinates:  coords.map(c => [c[1], c[0]]),
-        preference:   'recommended',   // balances safety + directness
+        preference:   'recommended',
         units:        'km',
         geometry:     true,
         instructions: false,
         options: {
           avoid_features: ['ferries', 'steps'],
           profile_params: {
-            weightings: {
-              green:      0.8,   // prefer green/quiet routes
-              quiet:      0.5,
-            },
-            restrictions: {
-              // allow cycling wrong-way on one-ways unless explicitly prohibited
-              allow_unsuitable: true,
-              surface_quality_known: false,
-            },
+            weightings: { green: 0.8, quiet: 0.5 },
+            restrictions: { allow_unsuitable: true, surface_quality_known: false },
           },
         },
       }),
@@ -1823,15 +1841,15 @@ async function tryGraphHopper(coords, apiKey, gen) {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        points:            coords.map(c => [c[1], c[0]]),
-        profile:           'bike',
-        points_encoded:    false,
-        locale:            'en',
-        instructions:      false,
-        calc_points:       true,
-        pass_through:      false,
-        details:           [],
-        key:               apiKey,
+        points:         coords.map(c => [c[1], c[0]]),
+        profile:        'bike',
+        points_encoded: false,
+        locale:         'en',
+        instructions:   false,
+        calc_points:    true,
+        pass_through:   false,
+        details:        [],
+        key:            apiKey,
       }),
     });
     if (!res.ok) { console.warn('GraphHopper', res.status); return false; }
