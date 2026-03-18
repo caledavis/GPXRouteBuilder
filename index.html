@@ -1549,7 +1549,10 @@ document.querySelectorAll('.key-panel').forEach(p => p.classList.remove('visible
 document.getElementById('panel-' + activeService).classList.add('visible');
 
 /* ── Route drawing dispatcher ── */
+let routeGeneration = 0;  // incremented on every updateRoute() call; async callbacks abort if stale
+
 async function updateRoute() {
+  const gen = ++routeGeneration;  // capture this call's generation
   clearRouteLayer();
   if (waypoints.length < 2) return;
   const coords = waypoints.map(w => [w.lat, w.lng]);
@@ -1558,14 +1561,19 @@ async function updateRoute() {
     let routed = false;
     if (activeService === 'ors') {
       const key = localStorage.getItem('ors_api_key') || '';
-      if (key) routed = await tryORS(coords, key);
+      if (key) routed = await tryORS(coords, key, gen);
     } else if (activeService === 'graphhopper') {
       const key = localStorage.getItem('gh_api_key') || '';
-      if (key) routed = await tryGraphHopper(coords, key);
+      if (key) routed = await tryGraphHopper(coords, key, gen);
     }
-    if (!routed) routed = await tryValhalla(coords);
+    if (!routed) routed = await tryValhalla(coords, gen);
+    // If this call is no longer current, discard — a newer call has taken over
+    if (gen !== routeGeneration) return;
     if (routed) { updateGpxPreview(); return; }
   }
+
+  // If no longer current (snap was toggled mid-flight), bail out
+  if (gen !== routeGeneration) return;
 
   // Straight-line fallback — draw one segment per adjacent waypoint pair
   drawSegments(coords.map((c, i) => ({ coords: [c, coords[i + 1]], segIdx: i })).slice(0, -1));
@@ -1762,7 +1770,7 @@ function insertWaypoint(insertAfterIndex, lat, lng) {
    - surface_quality_known: false → don't penalise unknown surfaces
    - One-way restrictions are automatically relaxed for bicycles by ORS
      on roads where cycling contra-flow is not explicitly prohibited. */
-async function tryORS(coords, apiKey) {
+async function tryORS(coords, apiKey, gen) {
   try {
     const res = await fetch('https://api.openrouteservice.org/v2/directions/cycling-regular/geojson', {
       method:  'POST',
@@ -1792,7 +1800,7 @@ async function tryORS(coords, apiKey) {
     if (!res.ok) { console.warn('ORS', res.status); return false; }
     const data = await res.json();
     const feat = data.features?.[0];
-    if (!feat) return false;
+    if (!feat || gen !== routeGeneration) return false;
     const gc = feat.geometry.coordinates.map(c => [c[1], c[0]]);
     drawSnappedRoute(gc);
     document.getElementById('stat-dist').textContent = feat.properties.summary.distance.toFixed(1) + ' km';
@@ -1805,14 +1813,14 @@ async function tryORS(coords, apiKey) {
    - block_area: none
    - GraphHopper's bike profile already respects OSM bicycle=yes on one-ways
      and will route contra-flow unless oneway:bicycle=yes/no is set. */
-async function tryGraphHopper(coords, apiKey) {
+async function tryGraphHopper(coords, apiKey, gen) {
   try {
     const res = await fetch('https://graphhopper.com/api/1/route', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         points:            coords.map(c => [c[1], c[0]]),
-        profile:           'bike',        // uses OSM cycling tags, respects contra-flow
+        profile:           'bike',
         points_encoded:    false,
         locale:            'en',
         instructions:      false,
@@ -1825,7 +1833,7 @@ async function tryGraphHopper(coords, apiKey) {
     if (!res.ok) { console.warn('GraphHopper', res.status); return false; }
     const data = await res.json();
     const path = data.paths?.[0];
-    if (!path) return false;
+    if (!path || gen !== routeGeneration) return false;
     const gc = path.points.coordinates.map(c => [c[1], c[0]]);
     drawSnappedRoute(gc);
     document.getElementById('stat-dist').textContent = (path.distance / 1000).toFixed(1) + ' km';
@@ -1840,7 +1848,7 @@ async function tryGraphHopper(coords, apiKey) {
    - Valhalla's bicycle costing already handles contra-flow one-ways:
      it respects cycleway:oneway and oneway:bicycle tags, and by default
      allows cycling the wrong way on roads where it is not prohibited. */
-async function tryValhalla(coords) {
+async function tryValhalla(coords, gen) {
   try {
     const res = await fetch('https://valhalla1.openstreetmap.de/route', {
       method: 'POST',
@@ -1850,19 +1858,19 @@ async function tryValhalla(coords) {
         costing: 'bicycle',
         costing_options: {
           bicycle: {
-            bicycle_type: 'Hybrid',  // suitable for mixed surfaces
-            use_roads:    0.3,       // prefer dedicated cycling infrastructure
-            use_hills:    0.3,       // mild avoidance of steep climbs
-            use_ferry:    0.5,       // neutral on ferries
-            use_living_streets: 0.6, // favour living streets and quiet roads
-            use_tracks:   0.5,       // willing to use tracks
+            bicycle_type: 'Hybrid',
+            use_roads:    0.3,
+            use_hills:    0.3,
+            use_ferry:    0.5,
+            use_living_streets: 0.6,
+            use_tracks:   0.5,
           },
         },
         directions_options: { units: 'km' },
       }),
     });
     const data = await res.json();
-    if (!data.trip?.legs) return false;
+    if (!data.trip?.legs || gen !== routeGeneration) return false;
     const points = data.trip.legs.flatMap(leg => decodePolyline6(leg.shape));
     drawSnappedRoute(points);
     document.getElementById('stat-dist').textContent = data.trip.summary.length.toFixed(1) + ' km';
