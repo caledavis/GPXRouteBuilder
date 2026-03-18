@@ -1591,6 +1591,10 @@ function clearRouteLayer() {
 /* Draw segments — each entry is { coords: [[lat,lng],...], segIdx: i }
    where segIdx means "inserting here goes between waypoint i and i+1". */
 function drawSegments(segments, snapped = false) {
+  // Always clear any existing layer first — prevents orphaned layers from
+  // in-flight async calls that resolved after a newer call already drew
+  if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
+
   const group = L.layerGroup().addTo(map);
 
   segments.forEach(({ coords: latlngs, segIdx }) => {
