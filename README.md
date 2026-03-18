@@ -14,6 +14,7 @@ When you tell your GPS to navigate along a _route_, the GPS itself figures out t
 1. If you have a routable map on your GPS (such as one from https://www.openfietsmap.nl), your GPS will navigate you along roads;
 2. If a road is closed for whatever reason (or you get lost), your GPS will navigate you along roads back to the route;
 3. You can set your GPS up to keep the screen off and to only turn it on and beep whenever a turn is approaching, so you don't have to be looking at your GPS the whole time.
+
 Navigating along _tracks_, however, is not good for navigation because:
 1. Even if you have a routable map on your GPS, the track is not 'snapped' to the roads;
 2. Your GPS will not provide turn-by-turn navigation, meaning you have to be 'head down' in your GPS the whole time to make sure you don't miss a turn.
