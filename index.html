@@ -464,6 +464,7 @@
     transition: opacity 0.15s;
     padding: 2px 0;
     self-select: none;
+    touch-action: none;   /* prevent iOS scroll interfering with drag */
   }
   .wp-drag:active { cursor: grabbing; }
   .waypoint-item:hover .wp-drag { opacity: 0.6; }
@@ -540,10 +541,45 @@
     width: 270px; flex-shrink: 0;
     background: var(--surface); border-left: 1px solid var(--border);
     display: flex; flex-direction: column; overflow: hidden;
-    transition: background 0.25s, border-color 0.25s;
+    transition: width 0.25s ease, background 0.25s, border-color 0.25s;
   }
-  .preview-header { padding: 12px 14px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-  .preview-header h3 { font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; }
+  .preview-panel.collapsed { width: 32px; }
+  .preview-panel.collapsed .preview-tabs,
+  .preview-panel.collapsed .preview-body { display: none; }
+
+  .preview-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+  }
+  .preview-header h3 {
+    font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em;
+    color: var(--text-dim); text-transform: uppercase;
+    white-space: nowrap; overflow: hidden;
+    transition: opacity 0.2s;
+  }
+  .preview-panel.collapsed .preview-header { padding: 12px 8px; justify-content: center; border-bottom-color: transparent; }
+  .preview-panel.collapsed .preview-header h3 { display: none; }
+
+  .preview-toggle-btn {
+    width: 20px; height: 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    line-height: 1;
+  }
+  .preview-toggle-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
 
   .preview-tabs { display: flex; overflow-x: auto; border-bottom: 1px solid var(--border); flex-shrink: 0; }
   .preview-tabs::-webkit-scrollbar { height: 3px; }
@@ -998,8 +1034,11 @@
     <div class="map-hint">Click map to add via points · Drag markers to move</div>
   </div>
 
-  <div class="preview-panel">
-    <div class="preview-header"><h3>GPX Preview</h3></div>
+  <div class="preview-panel" id="preview-panel">
+    <div class="preview-header">
+      <h3>GPX Preview</h3>
+      <button class="preview-toggle-btn" id="preview-toggle-btn" title="Hide preview">◀</button>
+    </div>
     <div class="preview-tabs" id="preview-tabs"></div>
     <div class="preview-body"><pre id="gpx-preview"></pre></div>
   </div>
@@ -1073,6 +1112,17 @@ document.getElementById('theme-btn').addEventListener('click', () => {
   isDark = !isDark;
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
   document.getElementById('theme-btn').textContent = isDark ? '🌙' : '☀️';
+});
+
+/* ── GPX Preview panel toggle ── */
+document.getElementById('preview-toggle-btn').addEventListener('click', () => {
+  const panel = document.getElementById('preview-panel');
+  const btn   = document.getElementById('preview-toggle-btn');
+  const collapsed = panel.classList.toggle('collapsed');
+  btn.textContent = collapsed ? '▶' : '◀';
+  btn.title       = collapsed ? 'Show preview' : 'Hide preview';
+  // Trigger a map resize so Leaflet fills the newly available space
+  setTimeout(() => map.invalidateSize(), 260);
 });
 
 /* ── Greyscale map toggle ── */
@@ -1390,12 +1440,23 @@ function drawSegments(segments, snapped = false) {
       insertWaypoint(segIdx, e.latlng.lat, e.latlng.lng);
     });
 
-    // Mousedown: begin drag-to-place
+    // Mousedown/touchstart: begin drag-to-place
     hit.on('mousedown', e => {
       L.DomEvent.stopPropagation(e);
       if (e.originalEvent.button !== 0) return;  // left button only
-      startSegmentDrag(e, segIdx);
+      startSegmentDrag(e.originalEvent, segIdx, false);
     });
+
+    // Touch: tap inserts; hold-and-drag moves
+    hit.getElement()?.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) return;
+      e.stopPropagation();
+      const touch = e.touches[0];
+      const latlng = map.containerPointToLatLng(
+        map.mouseEventToContainerPoint({ clientX: touch.clientX, clientY: touch.clientY })
+      );
+      startSegmentDrag(e.touches[0], segIdx, true, latlng);
+    }, { passive: false });
   });
 
   routeLayer = group;
@@ -1426,39 +1487,59 @@ function removeGhostMarker() {
   map.getContainer().style.cursor = '';
 }
 
-/* ── Drag-to-place on segment ── */
-function startSegmentDrag(e, segIdx) {
-  // Prevent map panning during drag
+/* ── Drag-to-place on segment (mouse + touch) ── */
+function startSegmentDrag(nativeEvent, segIdx, isTouch = false, touchLatLng = null) {
   map.dragging.disable();
-  showGhostMarker(e.latlng);
 
-  // Insert a placeholder waypoint immediately so the user sees it move
-  const placeholderLat = e.latlng.lat;
-  const placeholderLng = e.latlng.lng;
-  insertWaypoint(segIdx, placeholderLat, placeholderLng);
-
-  // The new waypoint is now at index segIdx+1
+  const startLatLng = touchLatLng || map.mouseEventToLatLng(nativeEvent);
+  showGhostMarker(startLatLng);
+  insertWaypoint(segIdx, startLatLng.lat, startLatLng.lng);
   const newIdx = segIdx + 1;
 
+  function latLngFromEvent(evt) {
+    if (isTouch) {
+      const t = evt.touches?.[0] || evt.changedTouches?.[0];
+      if (!t) return null;
+      return map.containerPointToLatLng(
+        map.mouseEventToContainerPoint({ clientX: t.clientX, clientY: t.clientY })
+      );
+    }
+    return map.mouseEventToLatLng(evt);
+  }
+
   const onMove = evt => {
-    const latlng = map.mouseEventToLatLng(evt);
+    evt.preventDefault();
+    const latlng = latLngFromEvent(evt);
+    if (!latlng) return;
     waypoints[newIdx].lat = latlng.lat;
     waypoints[newIdx].lng = latlng.lng;
     waypoints[newIdx].marker.setLatLng(latlng);
     showGhostMarker(latlng);
-    updateRoute();   // live preview as you drag
+    updateRoute();
   };
 
   const onUp = () => {
-    map.getContainer().removeEventListener('mousemove', onMove);
-    map.getContainer().removeEventListener('mouseup',   onUp);
+    const container = map.getContainer();
+    if (isTouch) {
+      container.removeEventListener('touchmove', onMove);
+      container.removeEventListener('touchend',  onUp);
+    } else {
+      container.removeEventListener('mousemove', onMove);
+      container.removeEventListener('mouseup',   onUp);
+    }
     map.dragging.enable();
     removeGhostMarker();
     updateAll();
   };
 
-  map.getContainer().addEventListener('mousemove', onMove);
-  map.getContainer().addEventListener('mouseup',   onUp);
+  const container = map.getContainer();
+  if (isTouch) {
+    container.addEventListener('touchmove', onMove, { passive: false });
+    container.addEventListener('touchend',  onUp);
+  } else {
+    container.addEventListener('mousemove', onMove);
+    container.addEventListener('mouseup',   onUp);
+  }
 }
 
 /* Insert a new waypoint at position insertAfterIndex+1 */
@@ -1734,7 +1815,7 @@ function renderSidebar() {
       html += `<div class="segment-divider">✂ FILE ${f}/${numFiles} &nbsp;·&nbsp; pts ${i + 1}–${to}</div>`;
     }
     html += `
-    <div class="waypoint-item${i === selectedIndex ? ' selected' : ''}" data-index="${i}" draggable="true">
+    <div class="waypoint-item${i === selectedIndex ? ' selected' : ''}" data-index="${i}">
       <div class="wp-drag" title="Drag to reorder"><span></span><span></span><span></span></div>
       <div class="wp-index">${i + 1}</div>
       <div class="wp-info">
@@ -1758,63 +1839,92 @@ function renderSidebar() {
     el.addEventListener('click', () => selectWaypoint(+el.dataset.index));
   });
 
-  // ── Drag-and-drop reordering ──────────────────────────────
-  let dragSrcIdx = null;
+  // ── Waypoint reorder via pointer events (works on mouse + iPad touch) ──
+  let reorderSrcIdx = null;
+  let reorderClone  = null;
 
-  list.querySelectorAll('.waypoint-item[draggable]').forEach(item => {
-    item.addEventListener('dragstart', e => {
-      dragSrcIdx = +item.dataset.index;
-      item.classList.add('dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      // Prevent the item click from firing after a drag
+  list.querySelectorAll('.wp-drag').forEach(handle => {
+    handle.addEventListener('pointerdown', e => {
       e.stopPropagation();
+      const item = handle.closest('.waypoint-item');
+      reorderSrcIdx = +item.dataset.index;
+
+      // Visual clone that follows the pointer
+      reorderClone = item.cloneNode(true);
+      reorderClone.style.cssText = `
+        position: fixed; pointer-events: none; z-index: 9999;
+        width: ${item.offsetWidth}px; opacity: 0.85;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+        border-radius: 8px; left: ${item.getBoundingClientRect().left}px;
+        top: ${item.getBoundingClientRect().top}px;
+      `;
+      document.body.appendChild(reorderClone);
+      item.style.opacity = '0.35';
+
+      handle.setPointerCapture(e.pointerId);
     });
 
-    item.addEventListener('dragend', () => {
-      dragSrcIdx = null;
-      list.querySelectorAll('.waypoint-item').forEach(el => {
-        el.classList.remove('dragging', 'drag-over-top', 'drag-over-bottom');
-      });
-    });
+    handle.addEventListener('pointermove', e => {
+      if (reorderSrcIdx === null || !reorderClone) return;
+      reorderClone.style.top = (e.clientY - 20) + 'px';
 
-    item.addEventListener('dragover', e => {
-      e.preventDefault();
-      if (dragSrcIdx === null) return;
-      const tgtIdx = +item.dataset.index;
-      if (tgtIdx === dragSrcIdx) return;
-      // Show drop indicator above or below target
-      const rect = item.getBoundingClientRect();
-      const mid  = rect.top + rect.height / 2;
+      // Find which item we're hovering over
       list.querySelectorAll('.waypoint-item').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
-      item.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
+      const els = [...list.querySelectorAll('.waypoint-item')];
+      for (const el of els) {
+        const rect = el.getBoundingClientRect();
+        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          const mid = rect.top + rect.height / 2;
+          el.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
+          break;
+        }
+      }
     });
 
-    item.addEventListener('dragleave', () => {
-      item.classList.remove('drag-over-top', 'drag-over-bottom');
+    handle.addEventListener('pointerup', e => {
+      if (reorderSrcIdx === null) return;
+
+      // Find drop target
+      let insertAt = reorderSrcIdx;
+      let before   = true;
+      const els = [...list.querySelectorAll('.waypoint-item')];
+      for (const el of els) {
+        const rect = el.getBoundingClientRect();
+        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
+          const tgtIdx = +el.dataset.index;
+          before   = e.clientY < rect.top + rect.height / 2;
+          insertAt = before ? tgtIdx : tgtIdx + 1;
+          if (insertAt > reorderSrcIdx) insertAt--;
+          break;
+        }
+      }
+
+      // Clean up visuals
+      list.querySelectorAll('.waypoint-item').forEach(el => {
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+        el.style.opacity = '';
+      });
+      reorderClone?.remove();
+      reorderClone  = null;
+
+      if (insertAt !== reorderSrcIdx) {
+        const [moved] = waypoints.splice(reorderSrcIdx, 1);
+        waypoints.splice(insertAt, 0, moved);
+        selectedIndex = insertAt;
+        refreshIcons();
+        updateAll();
+      }
+      reorderSrcIdx = null;
     });
 
-    item.addEventListener('drop', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      if (dragSrcIdx === null) return;
-      const tgtIdx = +item.dataset.index;
-      if (tgtIdx === dragSrcIdx) return;
-
-      // Determine insert position: above or below target
-      const rect   = item.getBoundingClientRect();
-      const before = e.clientY < rect.top + rect.height / 2;
-
-      // Remove source from array
-      const [moved] = waypoints.splice(dragSrcIdx, 1);
-
-      // Recalculate target index after removal
-      let insertAt = tgtIdx > dragSrcIdx ? tgtIdx - 1 : tgtIdx;
-      if (!before) insertAt += 1;
-
-      waypoints.splice(insertAt, 0, moved);
-      selectedIndex = insertAt;
-      refreshIcons();
-      updateAll();
+    handle.addEventListener('pointercancel', () => {
+      list.querySelectorAll('.waypoint-item').forEach(el => {
+        el.classList.remove('drag-over-top', 'drag-over-bottom');
+        el.style.opacity = '';
+      });
+      reorderClone?.remove();
+      reorderClone  = null;
+      reorderSrcIdx = null;
     });
   });
 
