@@ -230,6 +230,22 @@
     flex-shrink: 0;
   }
 
+  .routed-by-badge {
+    display: none;
+    align-items: center;
+    gap: 5px;
+    background: rgba(22,163,74,0.08);
+    border: 1px solid rgba(22,163,74,0.3);
+    color: var(--accent);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.05em;
+    padding: 4px 10px;
+    border-radius: 6px;
+    white-space: nowrap;
+  }
+  .routed-by-badge.visible { display: flex; }
+
   .theme-btn {
     width: 34px; height: 34px;
     background: var(--bg);
@@ -258,8 +274,7 @@
   }
   .sidebar.collapsed { width: 32px; }
   .sidebar.collapsed .sidebar-section,
-  .sidebar.collapsed .waypoints-section,
-  .sidebar.collapsed .sidebar-tab-pane { display: none; }
+  .sidebar.collapsed .waypoints-section { display: none; }
 
   .sidebar-toggle-btn {
     width: 20px; height: 20px;
@@ -284,38 +299,6 @@
     padding-top: 12px;
   }
   .sidebar.collapsed .sidebar-collapsed-tab { display: flex; }
-
-  /* ── Sidebar tabs ── */
-  .sidebar-tab-bar {
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid var(--border);
-    flex-shrink: 0;
-    background: var(--surface);
-    padding: 0 10px 0 0;
-  }
-  .sidebar.collapsed .sidebar-tab-bar { display: none; }
-
-  .sidebar-tab {
-    flex: 1;
-    padding: 11px 0;
-    background: transparent;
-    border: none;
-    border-bottom: 2px solid transparent;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    color: var(--text-dim);
-    cursor: pointer;
-    transition: all 0.18s;
-    text-align: center;
-  }
-  .sidebar-tab:hover { color: var(--text); }
-  .sidebar-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-  .sidebar-tab-pane { display: none; flex-direction: column; flex: 1; overflow: hidden; min-height: 0; }
-  .sidebar-tab-pane.active { display: flex; }
 
   .sidebar-section {
     border-bottom: 1px solid var(--border);
@@ -736,124 +719,6 @@
   [data-theme="dark"] .route-label { background: rgba(24,28,39,0.95); border-color: #2a3050; color: #e2e8f0; }
   .route-label-icon { background: none !important; border: none !important; width: auto !important; height: auto !important; }
 
-  /* ── Routing service section ── */
-  .service-btns {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 10px;
-  }
-  .service-btn {
-    flex: 1;
-    padding: 6px 4px;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.03em;
-    color: var(--text-dim);
-    cursor: pointer;
-    text-align: center;
-    transition: all 0.18s;
-    white-space: nowrap;
-  }
-  .service-btn:hover { border-color: var(--accent); color: var(--text); }
-  .service-btn.active {
-    background: var(--accent-dim);
-    border-color: var(--accent);
-    color: var(--accent);
-    font-weight: 600;
-  }
-
-  .key-panel {
-    display: none;
-    flex-direction: column;
-    gap: 7px;
-  }
-  .key-panel.visible { display: flex; }
-
-  .key-row {
-    display: flex;
-    gap: 6px;
-    align-items: center;
-  }
-  .key-input {
-    flex: 1;
-    background: var(--surface2);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    font-family: var(--mono);
-    font-size: 11px;
-    padding: 6px 9px;
-    outline: none;
-    min-width: 0;
-    transition: border-color 0.2s;
-  }
-  .key-input:focus { border-color: var(--accent2); }
-  .key-input::placeholder { color: var(--text-dim); opacity: 0.7; }
-  .key-save-btn {
-    padding: 6px 11px;
-    background: var(--accent);
-    color: var(--dl-text);
-    border: none;
-    border-radius: 6px;
-    font-family: var(--mono);
-    font-size: 11px;
-    font-weight: 600;
-    cursor: pointer;
-    white-space: nowrap;
-    transition: opacity 0.2s;
-    flex-shrink: 0;
-  }
-  .key-save-btn:hover { opacity: 0.85; }
-
-  .key-status {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    font-family: var(--mono);
-    font-size: 10px;
-  }
-  .key-dot {
-    width: 7px; height: 7px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    background: var(--border);
-    transition: background 0.2s;
-  }
-  .key-dot.ok  { background: var(--accent); }
-  .key-dot.err { background: var(--danger); }
-  .key-status-text { color: var(--text-dim); flex: 1; }
-  .key-clear {
-    background: transparent;
-    border: none;
-    font-family: var(--mono);
-    font-size: 10px;
-    color: var(--text-dim);
-    cursor: pointer;
-    padding: 0;
-    transition: color 0.15s;
-    flex-shrink: 0;
-  }
-  .key-clear:hover { color: var(--danger); }
-
-  .routing-disclaimer {
-    margin-top: 8px;
-    padding: 7px 9px;
-    background: rgba(234,179,8,0.08);
-    border: 1px solid rgba(234,179,8,0.35);
-    border-radius: 6px;
-    font-family: var(--sans);
-    font-size: 10px;
-    color: var(--text-dim);
-    line-height: 1.5;
-  }
-  [data-theme="dark"] .routing-disclaimer {
-    background: rgba(234,179,8,0.06);
-    border-color: rgba(234,179,8,0.25);
-  }
-
   /* ── Save / load routes ── */
   .save-row {
     display: flex;
@@ -1044,6 +909,7 @@
   </div>
   <div class="header-controls">
     <div class="routing-badge" id="routing-badge"><div class="routing-spinner"></div>Routing…</div>
+    <div class="routed-by-badge" id="routed-by-badge"></div>
     <div class="toggle-group" id="map-toggle">
       <button class="toggle-btn" data-map="cyclosm">CyclOSM</button>
       <button class="toggle-btn" data-map="osm"><span class="full">OpenStreetMap</span><span class="short">OSM</span></button>
@@ -1068,143 +934,89 @@
       <button class="sidebar-toggle-btn" id="sidebar-collapsed-btn" title="Show sidebar">▶</button>
     </div>
 
-    <!-- Tab bar -->
-    <div class="sidebar-tab-bar">
-      <button class="sidebar-tab active" data-tab="route">ROUTE</button>
-      <button class="sidebar-tab" data-tab="settings">SETTINGS</button>
-      <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar">◀</button>
+    <div class="sidebar-section">
+      <h3 style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        Save &amp; Load
+        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar">◀</button>
+      </h3>
+      <div class="save-row">
+        <button class="save-btn" id="export-route-btn">⬇ Export GPX</button>
+        <label class="save-btn" for="import-route-input" style="cursor:pointer;">⬆ Import GPX</label>
+        <input type="file" id="import-route-input" accept=".gpx" style="display:none">
+      </div>
+      <div class="autosave-notice">
+        <div class="autosave-dot" id="autosave-dot"></div>
+        <span id="autosave-label">Auto-saved to this browser</span>
+      </div>
     </div>
 
-    <!-- ═══ ROUTE TAB ═══ -->
-    <div class="sidebar-tab-pane active" id="tab-route">
+    <div class="sidebar-section">
+      <h3>GPX Overlay</h3>
+      <input type="file" id="gpx-file-input" accept=".gpx" style="display:none">
+      <label for="gpx-file-input" class="gpx-upload-label">
+        <span>📂</span> Upload GPX file
+      </label>
+      <div id="gpx-file-row" class="gpx-file-row active" style="display:none">
+        <div class="gpx-toggle" id="gpx-toggle" title="Toggle visibility"></div>
+        <span class="gpx-file-name" id="gpx-file-name"></span>
+        <button class="gpx-remove" id="gpx-remove" title="Remove overlay">✕</button>
+      </div>
+    </div>
 
-      <div class="sidebar-section">
-        <h3>Save &amp; Load</h3>
-        <div class="save-row">
-          <button class="save-btn" id="export-route-btn">⬇ Export GPX</button>
-          <label class="save-btn" for="import-route-input" style="cursor:pointer;">⬆ Import GPX</label>
-          <input type="file" id="import-route-input" accept=".gpx" style="display:none">
+    <div class="sidebar-section">
+      <h3>Cycling Route Overlays</h3>
+      <div class="overlay-rows" id="overlay-rows">
+        <div class="overlay-row" id="ov-icn" style="--ov-color:#e8000d" title="International cycling networks e.g. EuroVelo">
+          <div class="overlay-pip"></div>
+          <span class="overlay-label">International (ICN)</span>
+          <div class="overlay-spinner"></div>
+          <div class="overlay-switch"></div>
         </div>
-        <div class="autosave-notice">
-          <div class="autosave-dot" id="autosave-dot"></div>
-          <span id="autosave-label">Auto-saved to this browser</span>
+        <div class="overlay-row" id="ov-ncn" style="--ov-color:#0000ff" title="National cycling networks">
+          <div class="overlay-pip"></div>
+          <span class="overlay-label">National (NCN)</span>
+          <div class="overlay-spinner"></div>
+          <div class="overlay-switch"></div>
+        </div>
+        <div class="overlay-row" id="ov-rcn" style="--ov-color:#bb00bb" title="Regional cycling networks">
+          <div class="overlay-pip"></div>
+          <span class="overlay-label">Regional (RCN)</span>
+          <div class="overlay-spinner"></div>
+          <div class="overlay-switch"></div>
+        </div>
+        <div class="overlay-row" id="ov-lcn" style="--ov-color:#007d00" title="Local cycling networks">
+          <div class="overlay-pip"></div>
+          <span class="overlay-label">Local (LCN)</span>
+          <div class="overlay-spinner"></div>
+          <div class="overlay-switch"></div>
         </div>
       </div>
-
-      <div class="sidebar-section">
-        <h3>Cycling Route Overlays</h3>
-        <div class="overlay-rows" id="overlay-rows">
-          <div class="overlay-row" id="ov-icn" style="--ov-color:#e8000d" title="International cycling networks e.g. EuroVelo">
-            <div class="overlay-pip"></div>
-            <span class="overlay-label">International (ICN)</span>
-            <div class="overlay-spinner"></div>
-            <div class="overlay-switch"></div>
-          </div>
-          <div class="overlay-row" id="ov-ncn" style="--ov-color:#0000ff" title="National cycling networks">
-            <div class="overlay-pip"></div>
-            <span class="overlay-label">National (NCN)</span>
-            <div class="overlay-spinner"></div>
-            <div class="overlay-switch"></div>
-          </div>
-          <div class="overlay-row" id="ov-rcn" style="--ov-color:#bb00bb" title="Regional cycling networks">
-            <div class="overlay-pip"></div>
-            <span class="overlay-label">Regional (RCN)</span>
-            <div class="overlay-spinner"></div>
-            <div class="overlay-switch"></div>
-          </div>
-          <div class="overlay-row" id="ov-lcn" style="--ov-color:#007d00" title="Local cycling networks">
-            <div class="overlay-pip"></div>
-            <span class="overlay-label">Local (LCN)</span>
-            <div class="overlay-spinner"></div>
-            <div class="overlay-switch"></div>
-          </div>
-        </div>
-        <div class="names-toggle-row active" id="names-toggle">
-          <span class="names-toggle-label">Show route names</span>
-          <div class="names-toggle-switch"></div>
-        </div>
-        <p class="overlay-note">Pans without re-fetching · reloads when view leaves cached area</p>
+      <div class="names-toggle-row active" id="names-toggle">
+        <span class="names-toggle-label">Show route names</span>
+        <div class="names-toggle-switch"></div>
       </div>
+      <p class="overlay-note">Pans without re-fetching · reloads when view leaves cached area</p>
+    </div>
 
-      <div class="sidebar-section">
-        <h3>Route Name</h3>
-        <input type="text" id="route-name" value="My Route" placeholder="Route name…">
-        <div class="stats-row">
-          <div class="stat-box"><div class="stat-label">Points</div><div class="stat-value" id="stat-points">0</div></div>
-          <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
-        </div>
+    <div class="sidebar-section">
+      <h3>Route Name</h3>
+      <input type="text" id="route-name" value="My Route" placeholder="Route name…">
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-label">Points</div><div class="stat-value" id="stat-points">0</div></div>
+        <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
       </div>
+    </div>
 
-      <div class="waypoints-section">
-        <div class="waypoints-header">
-          <h3>Via Points</h3>
-          <span class="waypoint-count" id="wp-count">0</span>
-        </div>
-        <div class="waypoints-list" id="waypoints-list">
-          <div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>
-        </div>
-        <button class="add-btn" id="clear-btn">✕ Clear All Points</button>
+    <div class="waypoints-section">
+      <div class="waypoints-header">
+        <h3>Via Points</h3>
+        <span class="waypoint-count" id="wp-count">0</span>
       </div>
-
-    </div><!-- /tab-route -->
-
-    <!-- ═══ SETTINGS TAB ═══ -->
-    <div class="sidebar-tab-pane" id="tab-settings">
-
-      <div class="sidebar-section">
-        <h3>Routing Service</h3>
-        <div class="service-btns">
-          <button class="service-btn active" data-svc="valhalla">Valhalla</button>
-          <button class="service-btn" data-svc="ors">OpenRouteService</button>
-          <button class="service-btn" data-svc="graphhopper">GraphHopper</button>
-        </div>
-        <div class="key-panel visible" id="panel-valhalla">
-          <div class="key-status">
-            <div class="key-dot ok"></div>
-            <span class="key-status-text">No API key required</span>
-          </div>
-        </div>
-        <div class="key-panel" id="panel-ors">
-          <div class="key-row">
-            <input type="password" id="ors-key-input" class="key-input" placeholder="Paste ORS API key…" autocomplete="off" spellcheck="false">
-            <button class="key-save-btn" data-svc="ors">Save</button>
-          </div>
-          <div class="key-status">
-            <div class="key-dot" id="ors-key-dot"></div>
-            <span class="key-status-text" id="ors-key-status">No key saved</span>
-            <button class="key-clear" id="ors-key-clear" style="display:none">Clear</button>
-          </div>
-        </div>
-        <div class="key-panel" id="panel-graphhopper">
-          <div class="key-row">
-            <input type="password" id="gh-key-input" class="key-input" placeholder="Paste GraphHopper API key…" autocomplete="off" spellcheck="false">
-            <button class="key-save-btn" data-svc="graphhopper">Save</button>
-          </div>
-          <div class="key-status">
-            <div class="key-dot" id="gh-key-dot"></div>
-            <span class="key-status-text" id="gh-key-status">No key saved</span>
-            <button class="key-clear" id="gh-key-clear" style="display:none">Clear</button>
-          </div>
-        </div>
-        <div class="routing-disclaimer">
-          ⚠ Routes are calculated by the selected service and may differ from the path drawn by your GPS device.
-        </div>
+      <div class="waypoints-list" id="waypoints-list">
+        <div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>
       </div>
-
-      <div class="sidebar-section">
-        <h3>GPX Overlay</h3>
-        <input type="file" id="gpx-file-input" accept=".gpx" style="display:none">
-        <label for="gpx-file-input" class="gpx-upload-label">
-          <span>📂</span> Upload GPX file
-        </label>
-        <div id="gpx-file-row" class="gpx-file-row active" style="display:none">
-          <div class="gpx-toggle" id="gpx-toggle" title="Toggle visibility"></div>
-          <span class="gpx-file-name" id="gpx-file-name"></span>
-          <button class="gpx-remove" id="gpx-remove" title="Remove overlay">✕</button>
-        </div>
-      </div>
-
-    </div><!-- /tab-settings -->
+      <button class="add-btn" id="clear-btn">✕ Clear All Points</button>
+    </div>
 
   </div><!-- /sidebar -->
 
@@ -1320,16 +1132,6 @@ function toggleSidebar() {
 document.getElementById('sidebar-toggle-btn').addEventListener('click', toggleSidebar);
 document.getElementById('sidebar-collapsed-btn').addEventListener('click', toggleSidebar);
 
-/* ── Sidebar tab switching ── */
-document.querySelectorAll('.sidebar-tab').forEach(tab => {
-  tab.addEventListener('click', () => {
-    document.querySelectorAll('.sidebar-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.sidebar-tab-pane').forEach(p => p.classList.remove('active'));
-    tab.classList.add('active');
-    document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
-  });
-});
-
 /* ── Greyscale map toggle ── */
 let isGreyscale = false;
 document.getElementById('grey-btn').addEventListener('click', () => {
@@ -1342,6 +1144,8 @@ document.getElementById('grey-btn').addEventListener('click', () => {
 document.getElementById('snap-toggle').addEventListener('click', () => {
   snapEnabled = !snapEnabled;
   document.getElementById('snap-toggle').classList.toggle('active', snapEnabled);
+  if (!snapEnabled) setRoutedByBadge(null);
+  invalidateAllSegments();
   updateRoute();
 });
 
@@ -1513,20 +1317,28 @@ function addWaypoint(lat, lng, name) {
   marker.on('dragend', e => {
     const p = e.target.getLatLng();
     const i = waypoints.findIndex(w => w.marker === marker);
-    if (i >= 0) { waypoints[i].lat = p.lat; waypoints[i].lng = p.lng; updateAll(); }
+    if (i >= 0) {
+      waypoints[i].lat = p.lat; waypoints[i].lng = p.lng;
+      invalidateSegments([i - 1, i]);
+      updateAll();
+    }
   });
   marker.on('click', e => {
     L.DomEvent.stopPropagation(e);
     selectWaypoint(waypoints.findIndex(w => w.marker === marker));
   });
   waypoints.push({ lat, lng, name: name || `Point ${idx + 1}`, marker });
+  // Invalidate AFTER push so waypoints.length-1 is the correct new segment index
+  invalidateSegments([waypoints.length - 2]);
   refreshIcons();
   updateAll();
 }
 
 function removeWaypoint(i) {
   map.removeLayer(waypoints[i].marker);
+  segmentCache.splice(i, 1);   // remove cache entry BEFORE splicing waypoints
   waypoints.splice(i, 1);
+  invalidateSegments([i - 1, i]);
   if (selectedIndex >= waypoints.length) selectedIndex = waypoints.length - 1;
   refreshIcons();
   updateAll();
@@ -1536,6 +1348,8 @@ function moveWaypoint(i, dir) {
   const n = i + dir;
   if (n < 0 || n >= waypoints.length) return;
   [waypoints[i], waypoints[n]] = [waypoints[n], waypoints[i]];
+  // Both adjacent segments of both affected waypoints need re-routing
+  invalidateSegments([i - 1, i, n - 1, n]);
   refreshIcons();
   updateAll();
 }
@@ -1557,63 +1371,160 @@ map.on('click', e => {
 });
 map.on('dblclick', () => { if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; } });
 
-/* ── Routing service state ── */
-let activeService = localStorage.getItem('routing_service') || 'valhalla';
-
-// Initialise service button highlight
-document.querySelectorAll('.service-btn').forEach(btn => {
-  btn.classList.toggle('active', btn.dataset.svc === activeService);
-  btn.addEventListener('click', () => {
-    activeService = btn.dataset.svc;
-    localStorage.setItem('routing_service', activeService);
-    document.querySelectorAll('.service-btn').forEach(b => b.classList.toggle('active', b.dataset.svc === activeService));
-    document.querySelectorAll('.key-panel').forEach(p => p.classList.remove('visible'));
-    document.getElementById('panel-' + activeService).classList.add('visible');
-    if (snapEnabled && waypoints.length >= 2) updateRoute();
-  });
-});
-// Show correct panel on load
-document.querySelectorAll('.key-panel').forEach(p => p.classList.remove('visible'));
-document.getElementById('panel-' + activeService).classList.add('visible');
-
 /* ── Route drawing dispatcher ── */
-let routeGeneration = 0;  // incremented on every updateRoute() call; async callbacks abort if stale
+let routeGeneration = 0;
+
+/* Segment cache: latlngs for each routed segment [i] → [i+1].
+   Key format: "lat,lng" — if a waypoint moves, its key changes and the
+   adjacent segments are invalidated. */
+let segmentCache = [];   // segmentCache[i] = [[lat,lng], ...] for segment i→i+1
+let dirtySegments = new Set();  // indices of segments needing re-routing
+
+/* Call this whenever waypoints change to mark affected segments dirty. */
+function invalidateSegments(indices) {
+  indices.forEach(i => { if (i >= 0 && i < waypoints.length - 1) dirtySegments.add(i); });
+}
+
+/* Invalidate ALL segments (snap toggle, service change, clear, etc.) */
+function invalidateAllSegments() {
+  segmentCache = [];
+  dirtySegments.clear();
+  for (let i = 0; i < waypoints.length - 1; i++) dirtySegments.add(i);
+}
 
 function setRoutingIndicator(on) {
   document.getElementById('routing-badge').classList.toggle('visible', on);
 }
 
+const SERVICE_LABELS = { brouter: 'BRouter', valhalla: 'Valhalla' };
+
+function setRoutedByBadge(svc) {
+  const badge = document.getElementById('routed-by-badge');
+  if (!svc || !snapEnabled) { badge.classList.remove('visible'); return; }
+  const label    = SERVICE_LABELS[svc] || svc;
+  const fellBack = svc === 'valhalla';
+  badge.textContent = fellBack ? `Routing via ${label} (BRouter unavailable)` : `Routing via ${label}`;
+  badge.title       = fellBack ? 'BRouter was unavailable — routed via Valhalla instead' : 'Routed via BRouter';
+  badge.classList.add('visible');
+}
+
 async function updateRoute() {
   const gen = ++routeGeneration;
   clearRouteLayer();
-  if (waypoints.length < 2) { setRoutingIndicator(false); return; }
-  const coords = waypoints.map(w => [w.lat, w.lng]);
+  if (waypoints.length < 2) {
+    if (gen === routeGeneration) { setRoutingIndicator(false); setRoutedByBadge(null); }
+    return;
+  }
 
   if (snapEnabled) {
-    setRoutingIndicator(true);
-    let routed = false;
-    if (activeService === 'ors') {
-      const key = localStorage.getItem('ors_api_key') || '';
-      if (key) routed = await tryORS(coords, key, gen);
-    } else if (activeService === 'graphhopper') {
-      const key = localStorage.getItem('gh_api_key') || '';
-      if (key) routed = await tryGraphHopper(coords, key, gen);
+    // Ensure cache array is the right length
+    while (segmentCache.length < waypoints.length - 1) segmentCache.push(null);
+    segmentCache.length = waypoints.length - 1;
+
+    // Collect segments that need routing
+    const toRoute = [];
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      if (dirtySegments.has(i) || !segmentCache[i]) toRoute.push(i);
     }
-    if (!routed) routed = await tryValhalla(coords, gen);
-    if (gen === routeGeneration) setRoutingIndicator(false);
-    if (gen !== routeGeneration) return;
-    if (routed) { updateGpxPreview(); return; }
+
+    if (toRoute.length > 0) {
+      if (gen === routeGeneration) setRoutingIndicator(true);
+
+      // Route each dirty segment via BRouter, fall back to Valhalla if needed
+      const results = await Promise.all(toRoute.map(async i => {
+        const coords = [[waypoints[i].lat, waypoints[i].lng],
+                        [waypoints[i + 1].lat, waypoints[i + 1].lng]];
+        let latlngs = await routeSegmentBRouter(coords, gen);
+        const usedService = latlngs ? 'brouter' : 'valhalla';
+        if (!latlngs) latlngs = await routeSegmentValhalla(coords, gen);
+        return { i, latlngs, usedService };
+      }));
+
+      if (gen !== routeGeneration) return;  // stale — do NOT touch the indicator
+
+      // Store results — if any segment failed, fall back to straight line for it
+      let usedFallback = false;
+      results.forEach(({ i, latlngs, usedService }) => {
+        if (usedService === 'valhalla') usedFallback = true;
+        segmentCache[i] = latlngs || [
+          [waypoints[i].lat, waypoints[i].lng],
+          [waypoints[i + 1].lat, waypoints[i + 1].lng],
+        ];
+        dirtySegments.delete(i);
+      });
+      setRoutedByBadge(usedFallback ? 'valhalla' : 'brouter');
+    }
+
+    if (gen !== routeGeneration) return;  // stale — do NOT touch the indicator
+
+    // Build segment list from cache and draw
+    const segments = segmentCache.map((latlngs, i) => ({ coords: latlngs, segIdx: i }));
+    drawSegments(segments, true);
+    setRoutingIndicator(false);  // only reached by the current generation
+
+    // Update distance from cached segments
+    let totalDist = 0;
+    segmentCache.forEach((seg, i) => {
+      for (let j = 0; j < seg.length - 1; j++) totalDist += map.distance(seg[j], seg[j + 1]);
+    });
+    updateDist(totalDist);
+    updateGpxPreview();
+    return;
   }
 
   if (gen !== routeGeneration) return;
 
-  // Straight-line fallback — draw one segment per adjacent waypoint pair
+  // Straight-line fallback
   setRoutingIndicator(false);
+  const coords = waypoints.map(w => [w.lat, w.lng]);
   drawSegments(coords.map((c, i) => ({ coords: [c, coords[i + 1]], segIdx: i })).slice(0, -1));
   let d = 0;
   for (let i = 0; i < coords.length - 1; i++) d += map.distance(coords[i], coords[i + 1]);
   updateDist(d);
   updateGpxPreview();
+}
+
+/* ── Per-segment routing functions (2-point each) ── */
+
+
+async function routeSegmentValhalla(coords, gen) {
+  try {
+    const res = await fetch('https://valhalla1.openstreetmap.de/route', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        locations: coords.map(c => ({ lon: c[1], lat: c[0], type: 'break' })),
+        costing: 'bicycle',
+        costing_options: { bicycle: {
+          bicycle_type: 'Hybrid', use_roads: 0.3, use_hills: 0.3,
+          use_ferry: 0.5, use_living_streets: 0.6, use_tracks: 0.5,
+        }},
+        directions_options: { units: 'km' },
+      }),
+    });
+    const data = await res.json();
+    if (!data.trip?.legs || gen !== routeGeneration) return null;
+    return data.trip.legs.flatMap(leg => decodePolyline6(leg.shape));
+  } catch (_) { return null; }
+}
+
+/* Remove the old whole-route routing functions — replaced by per-segment above */
+
+/* BRouter — purpose-built cycling router, pre-processed OSM data.
+   Uses the 'trekking' profile: prefers cycleways, quiet roads, gravel paths.
+   Fast and cycling-specific; no API key required. */
+async function routeSegmentBRouter(coords, gen) {
+  try {
+    const lonlats = coords.map(c => `${c[1]},${c[0]}`).join('|');
+    const res = await fetch(
+      `https://brouter.de/brouter?lonlats=${lonlats}&profile=trekking&alternativeidx=0&format=geojson`
+    );
+    if (!res.ok || gen !== routeGeneration) return null;
+    const data = await res.json();
+    const feature = data.features?.[0];
+    if (!feature || gen !== routeGeneration) return null;
+    return feature.geometry.coordinates.map(c => [c[1], c[0]]);
+  } catch (_) { return null; }
 }
 
 function clearRouteLayer() {
@@ -1778,7 +1689,11 @@ function insertWaypoint(insertAfterIndex, lat, lng) {
   marker.on('dragend', e => {
     const p = e.target.getLatLng();
     const i = waypoints.findIndex(w => w.marker === marker);
-    if (i >= 0) { waypoints[i].lat = p.lat; waypoints[i].lng = p.lng; updateAll(); }
+    if (i >= 0) {
+      waypoints[i].lat = p.lat; waypoints[i].lng = p.lng;
+      invalidateSegments([i - 1, i]);
+      updateAll();
+    }
   });
   marker.on('click', e => {
     L.DomEvent.stopPropagation(e);
@@ -1787,159 +1702,16 @@ function insertWaypoint(insertAfterIndex, lat, lng) {
 
   waypoints.splice(newIdx, 0, { lat, lng, name, marker });
 
-  // Re-number all subsequent waypoint names that still have the default pattern
-  // (avoid renaming user-customised names)
+  // Insert a null slot in the cache at newIdx, then dirty the two new segments
+  segmentCache.splice(newIdx, 0, null);
+  invalidateSegments([newIdx - 1, newIdx]);
+
   waypoints.forEach((wp, i) => {
-    if (wp.name === `Point ${i}` || wp.name === `Point ${i + 1}` ||
-        /^Point \d+$/.test(wp.name)) {
-      wp.name = `Point ${i + 1}`;
-    }
+    if (/^Point \d+$/.test(wp.name)) wp.name = `Point ${i + 1}`;
   });
 
   refreshIcons();
   updateAll();
-}
-
-/* OpenRouteService — cycling-regular profile, cyclist-appropriate options:
-   - allow_unsuitable: true  → use paths not perfectly surfaced
-   - surface_quality_known: false → don't penalise unknown surfaces
-   - One-way restrictions are automatically relaxed for bicycles by ORS
-     on roads where cycling contra-flow is not explicitly prohibited. */
-async function tryORS(coords, apiKey, gen) {
-  try {
-    const res = await fetch('https://api.openrouteservice.org/v2/directions/cycling-regular/geojson', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': apiKey },
-      body: JSON.stringify({
-        coordinates:  coords.map(c => [c[1], c[0]]),
-        preference:   'recommended',
-        units:        'km',
-        geometry:     true,
-        instructions: false,
-        options: {
-          avoid_features: ['ferries', 'steps'],
-          profile_params: {
-            weightings: { green: 0.8, quiet: 0.5 },
-            restrictions: { allow_unsuitable: true, surface_quality_known: false },
-          },
-        },
-      }),
-    });
-    if (!res.ok) { console.warn('ORS', res.status); return false; }
-    const data = await res.json();
-    const feat = data.features?.[0];
-    if (!feat || gen !== routeGeneration) return false;
-    const gc = feat.geometry.coordinates.map(c => [c[1], c[0]]);
-    drawSnappedRoute(gc);
-    document.getElementById('stat-dist').textContent = feat.properties.summary.distance.toFixed(1) + ' km';
-    return true;
-  } catch (e) { console.warn('ORS error', e); return false; }
-}
-
-/* GraphHopper — bike profile, cyclist-appropriate options:
-   - pass_through: false (allow shortcuts through contra-flow where permitted)
-   - block_area: none
-   - GraphHopper's bike profile already respects OSM bicycle=yes on one-ways
-     and will route contra-flow unless oneway:bicycle=yes/no is set. */
-async function tryGraphHopper(coords, apiKey, gen) {
-  try {
-    const res = await fetch('https://graphhopper.com/api/1/route', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        points:         coords.map(c => [c[1], c[0]]),
-        profile:        'bike',
-        points_encoded: false,
-        locale:         'en',
-        instructions:   false,
-        calc_points:    true,
-        pass_through:   false,
-        details:        [],
-        key:            apiKey,
-      }),
-    });
-    if (!res.ok) { console.warn('GraphHopper', res.status); return false; }
-    const data = await res.json();
-    const path = data.paths?.[0];
-    if (!path || gen !== routeGeneration) return false;
-    const gc = path.points.coordinates.map(c => [c[1], c[0]]);
-    drawSnappedRoute(gc);
-    document.getElementById('stat-dist').textContent = (path.distance / 1000).toFixed(1) + ' km';
-    return true;
-  } catch (e) { console.warn('GraphHopper error', e); return false; }
-}
-
-/* Valhalla — bicycle costing (OSMF public instance, no key needed).
-   - use_roads: 0.3        → strongly prefer cycleways over roads
-   - use_hills: 0.3        → mild hill avoidance
-   - use_ferry: 0.5        → neutral on ferries
-   - Valhalla's bicycle costing already handles contra-flow one-ways:
-     it respects cycleway:oneway and oneway:bicycle tags, and by default
-     allows cycling the wrong way on roads where it is not prohibited. */
-async function tryValhalla(coords, gen) {
-  try {
-    const res = await fetch('https://valhalla1.openstreetmap.de/route', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        locations: coords.map(c => ({ lon: c[1], lat: c[0], type: 'break' })),
-        costing: 'bicycle',
-        costing_options: {
-          bicycle: {
-            bicycle_type: 'Hybrid',
-            use_roads:    0.3,
-            use_hills:    0.3,
-            use_ferry:    0.5,
-            use_living_streets: 0.6,
-            use_tracks:   0.5,
-          },
-        },
-        directions_options: { units: 'km' },
-      }),
-    });
-    const data = await res.json();
-    if (!data.trip?.legs || gen !== routeGeneration) return false;
-    const points = data.trip.legs.flatMap(leg => decodePolyline6(leg.shape));
-    drawSnappedRoute(points);
-    document.getElementById('stat-dist').textContent = data.trip.summary.length.toFixed(1) + ' km';
-    return true;
-  } catch (_) { return false; }
-}
-
-function drawSnappedRoute(latlngs) {
-  // For a snapped route we get one continuous geometry. We need to split it
-  // into per-waypoint segments so click/drag insertion works correctly.
-  // Strategy: find the geometry point closest to each intermediate waypoint
-  // and use that as the segment boundary.
-  const segments = splitSnappedRoute(latlngs);
-  drawSegments(segments, true);
-}
-
-/* Split a continuous snapped polyline into segments matching waypoint pairs.
-   Each segment covers waypoints[i] → waypoints[i+1]. */
-function splitSnappedRoute(latlngs) {
-  if (waypoints.length < 2) return [];
-  if (waypoints.length === 2) {
-    return [{ coords: latlngs, segIdx: 0 }];
-  }
-
-  // For each intermediate waypoint (not start/end), find the closest point in latlngs
-  const splits = [0]; // indices into latlngs where segments start
-  for (let wi = 1; wi < waypoints.length - 1; wi++) {
-    const wp   = waypoints[wi];
-    let best   = Infinity, bestIdx = splits[splits.length - 1];
-    for (let li = splits[splits.length - 1]; li < latlngs.length - 1; li++) {
-      const d = map.distance([wp.lat, wp.lng], latlngs[li]);
-      if (d < best) { best = d; bestIdx = li; }
-    }
-    splits.push(bestIdx);
-  }
-  splits.push(latlngs.length - 1);
-
-  return splits.slice(0, -1).map((start, i) => ({
-    coords: latlngs.slice(start, splits[i + 1] + 1),
-    segIdx: i,
-  }));
 }
 
 /* Decode Valhalla polyline6 (precision 1e-6) */
@@ -1959,53 +1731,6 @@ function decodePolyline6(encoded) {
 }
 
 /* ── API key management ── */
-function initKeyPanel(svc, inputId, dotId, statusId, clearId, storageKey) {
-  const input  = document.getElementById(inputId);
-  const dot    = document.getElementById(dotId);
-  const status = document.getElementById(statusId);
-  const clear  = document.getElementById(clearId);
-
-  function refresh() {
-    const k = localStorage.getItem(storageKey) || '';
-    if (k) {
-      dot.className      = 'key-dot ok';
-      status.textContent = 'Key saved (…' + k.slice(-6) + ')';
-      clear.style.display = 'inline';
-      input.value        = '';
-      input.placeholder  = 'Key saved — paste to replace';
-    } else {
-      dot.className      = 'key-dot';
-      status.textContent = 'No key saved';
-      clear.style.display = 'none';
-      input.placeholder  = input.getAttribute('data-placeholder') || 'Paste API key…';
-    }
-  }
-
-  // Save button (shared class, identified by data-svc)
-  document.querySelector(`.key-save-btn[data-svc="${svc}"]`).addEventListener('click', () => {
-    const val = input.value.trim();
-    if (!val) return;
-    localStorage.setItem(storageKey, val);
-    refresh();
-    if (snapEnabled && waypoints.length >= 2 && activeService === svc) updateRoute();
-  });
-
-  input.addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.querySelector(`.key-save-btn[data-svc="${svc}"]`).click();
-  });
-
-  clear.addEventListener('click', () => {
-    localStorage.removeItem(storageKey);
-    refresh();
-    if (snapEnabled && waypoints.length >= 2 && activeService === svc) updateRoute();
-  });
-
-  refresh();
-}
-
-initKeyPanel('ors',         'ors-key-input', 'ors-key-dot', 'ors-key-status', 'ors-key-clear', 'ors_api_key');
-initKeyPanel('graphhopper', 'gh-key-input',  'gh-key-dot',  'gh-key-status',  'gh-key-clear',  'gh_api_key');
-
 function updateDist(m) {
   document.getElementById('stat-dist').textContent = (m / 1000).toFixed(1) + ' km';
 }
@@ -2127,6 +1852,8 @@ function renderSidebar() {
         const [moved] = waypoints.splice(reorderSrcIdx, 1);
         waypoints.splice(insertAt, 0, moved);
         selectedIndex = insertAt;
+        // Invalidate all segments touching either the source or destination position
+        invalidateSegments([reorderSrcIdx - 1, reorderSrcIdx, insertAt - 1, insertAt]);
         refreshIcons();
         updateAll();
       }
@@ -2225,6 +1952,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   waypoints = [];
   if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
   selectedIndex = -1;
+  invalidateAllSegments();
   updateAll();
 });
 
@@ -2420,6 +2148,7 @@ function deserialiseRoute(data) {
     map.setView([waypoints[0].lat, waypoints[0].lng], 14);
   }
 
+  invalidateAllSegments();
   updateAll();
 }
 
