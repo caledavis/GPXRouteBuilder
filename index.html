@@ -2371,9 +2371,10 @@ const AUTOSAVE_KEY  = 'gpx_autosave';
 /* ── Serialise current route to a plain object ── */
 function serialiseRoute() {
   return {
-    name:      document.getElementById('route-name').value || 'My Route',
-    savedAt:   Date.now(),
-    waypoints: waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng, name: wp.name })),
+    name:        document.getElementById('route-name').value || 'My Route',
+    savedAt:     Date.now(),
+    snapEnabled: snapEnabled,
+    waypoints:   waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng, name: wp.name })),
   };
 }
 
@@ -2502,6 +2503,11 @@ document.getElementById('export-route-btn').addEventListener('click', exportRout
   try {
     const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
     if (data?.waypoints?.length) {
+      // Restore snap state before deserialising so updateRoute() uses the right mode
+      if (data.snapEnabled) {
+        snapEnabled = true;
+        document.getElementById('snap-toggle').classList.add('active');
+      }
       deserialiseRoute(data);
       document.getElementById('autosave-label').textContent =
         'Restored from auto-save · ' + new Date(data.savedAt).toLocaleDateString(
