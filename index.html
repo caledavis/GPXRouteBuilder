@@ -2,7 +2,7 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>GPX Route Builder</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -68,14 +68,23 @@
   header {
     background: var(--surface);
     border-bottom: 1px solid var(--border);
-    padding: 0 20px;
-    height: 52px;
+    padding: env(safe-area-inset-top, 0px) 20px 0;
+    height: calc(52px + env(safe-area-inset-top, 0px));
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
+    padding-bottom: 0;
     flex-shrink: 0;
     z-index: 1000;
     transition: background 0.25s, border-color 0.25s;
+  }
+
+  /* Keep content vertically centred within the 52px content area */
+  .logo, .header-controls {
+    padding-bottom: 0;
+    height: 52px;
+    display: flex;
+    align-items: center;
   }
 
   .logo {
