@@ -233,8 +233,35 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    transition: background 0.25s, border-color 0.25s;
+    transition: width 0.25s ease, background 0.25s, border-color 0.25s;
   }
+  .sidebar.collapsed { width: 32px; }
+  .sidebar.collapsed .sidebar-section,
+  .sidebar.collapsed .waypoints-section { display: none; }
+
+  .sidebar-toggle-btn {
+    width: 20px; height: 20px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-dim);
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+    line-height: 1;
+  }
+  .sidebar-toggle-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
+
+  /* Collapsed tab — centred chevron button fills the slim strip */
+  .sidebar-collapsed-tab {
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 12px;
+  }
+  .sidebar.collapsed .sidebar-collapsed-tab { display: flex; }
 
   .sidebar-section {
     border-bottom: 1px solid var(--border);
@@ -927,10 +954,18 @@
 
 <div class="main">
 
-  <div class="sidebar">
+  <div class="sidebar" id="sidebar">
+
+    <!-- Slim tab: shown when collapsed -->
+    <div class="sidebar-collapsed-tab">
+      <button class="sidebar-toggle-btn" id="sidebar-collapsed-btn" title="Show sidebar">▶</button>
+    </div>
 
     <div class="sidebar-section">
-      <h3>Routing Service</h3>
+      <h3 style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+        Routing Service
+        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar">◀</button>
+      </h3>
 
       <!-- Service selector -->
       <div class="service-btns">
@@ -1156,6 +1191,16 @@ document.getElementById('preview-toggle-btn').addEventListener('click', () => {
   // Trigger a map resize so Leaflet fills the newly available space
   setTimeout(() => map.invalidateSize(), 260);
 });
+
+/* ── Sidebar toggle ── */
+function toggleSidebar() {
+  const sidebar   = document.getElementById('sidebar');
+  const collapsed = sidebar.classList.toggle('collapsed');
+  document.getElementById('sidebar-toggle-btn').title = collapsed ? 'Show sidebar' : 'Hide sidebar';
+  setTimeout(() => map.invalidateSize(), 260);
+}
+document.getElementById('sidebar-toggle-btn').addEventListener('click', toggleSidebar);
+document.getElementById('sidebar-collapsed-btn').addEventListener('click', toggleSidebar);
 
 /* ── Greyscale map toggle ── */
 let isGreyscale = false;
