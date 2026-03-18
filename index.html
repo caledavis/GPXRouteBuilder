@@ -7,35 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="GPX Builder">
 <title>GPX Route Builder</title>
-<link id="apple-touch-icon" rel="apple-touch-icon">
-<script>
-  // Generate a 180×180 apple-touch-icon from the cyclist emoji at page load
-  (function() {
-    const canvas = document.createElement('canvas');
-    canvas.width = canvas.height = 180;
-    const ctx = canvas.getContext('2d');
-    // Rounded rectangle background matching the app's green accent
-    const r = 40;
-    ctx.fillStyle = '#f0f2f7';
-    ctx.beginPath();
-    ctx.moveTo(r, 0); ctx.lineTo(180 - r, 0);
-    ctx.quadraticCurveTo(180, 0, 180, r);
-    ctx.lineTo(180, 180 - r);
-    ctx.quadraticCurveTo(180, 180, 180 - r, 180);
-    ctx.lineTo(r, 180);
-    ctx.quadraticCurveTo(0, 180, 0, 180 - r);
-    ctx.lineTo(0, r);
-    ctx.quadraticCurveTo(0, 0, r, 0);
-    ctx.closePath();
-    ctx.fill();
-    // Draw the emoji centred
-    ctx.font = '110px serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('🚴', 90, 95);
-    document.getElementById('apple-touch-icon').href = canvas.toDataURL('image/png');
-  })();
-</script>
+<link rel="apple-touch-icon" href="icon.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
