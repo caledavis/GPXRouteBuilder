@@ -1122,10 +1122,10 @@
     <div class="map-hint">Click map to add via points · Drag markers to move</div>
   </div>
 
-  <div class="preview-panel" id="preview-panel">
+  <div class="preview-panel collapsed" id="preview-panel">
     <div class="preview-header">
       <h3>GPX Preview</h3>
-      <button class="preview-toggle-btn" id="preview-toggle-btn" title="Hide preview">◀</button>
+      <button class="preview-toggle-btn" id="preview-toggle-btn" title="Show preview">▶</button>
     </div>
     <div class="preview-tabs" id="preview-tabs"></div>
     <div class="preview-body"><pre id="gpx-preview"></pre></div>
@@ -2250,6 +2250,8 @@ document.getElementById('gpx-remove').addEventListener('click', () => {
 });
 
 updateGpxPreview();
+// Preview panel starts collapsed — let Leaflet fill the extra space immediately
+setTimeout(() => map.invalidateSize(), 0);
 </script>
 </body>
 </html>
