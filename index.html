@@ -59,6 +59,8 @@
     color: var(--text);
     font-family: var(--sans);
     height: 100vh;
+    height: 100dvh; /* dynamic viewport height — accounts for Safari's bottom bar on iOS */
+    padding-bottom: env(safe-area-inset-bottom, 0px);
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -568,7 +570,9 @@
   [data-theme="dark"] .grey-btn.active { background: rgba(34,211,238,0.1); }
 
   .map-hint {
-    position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+    position: absolute;
+    bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+    left: 50%; transform: translateX(-50%);
     background: var(--hint-bg); border: 1px solid var(--border);
     padding: 7px 14px; border-radius: 20px;
     font-family: var(--mono); font-size: 11px; color: var(--text-dim);
