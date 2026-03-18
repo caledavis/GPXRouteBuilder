@@ -1548,7 +1548,10 @@ function selectWaypoint(i) {
 
 /* Single-click adds waypoint; double-click zooms only */
 let clickTimer = null;
+let suppressMapClick = false;  // set true briefly after a segment-insert click
+
 map.on('click', e => {
+  if (suppressMapClick) return;
   if (clickTimer) return;
   clickTimer = setTimeout(() => { clickTimer = null; addWaypoint(e.latlng.lat, e.latlng.lng); }, 250);
 });
@@ -1583,7 +1586,7 @@ function setRoutingIndicator(on) {
 async function updateRoute() {
   const gen = ++routeGeneration;
   clearRouteLayer();
-  if (waypoints.length < 2) return;
+  if (waypoints.length < 2) { setRoutingIndicator(false); return; }
   const coords = waypoints.map(w => [w.lat, w.lng]);
 
   if (snapEnabled) {
@@ -1597,7 +1600,7 @@ async function updateRoute() {
       if (key) routed = await tryGraphHopper(coords, key, gen);
     }
     if (!routed) routed = await tryValhalla(coords, gen);
-    setRoutingIndicator(false);
+    if (gen === routeGeneration) setRoutingIndicator(false);
     if (gen !== routeGeneration) return;
     if (routed) { updateGpxPreview(); return; }
   }
@@ -1605,6 +1608,7 @@ async function updateRoute() {
   if (gen !== routeGeneration) return;
 
   // Straight-line fallback — draw one segment per adjacent waypoint pair
+  setRoutingIndicator(false);
   drawSegments(coords.map((c, i) => ({ coords: [c, coords[i + 1]], segIdx: i })).slice(0, -1));
   let d = 0;
   for (let i = 0; i < coords.length - 1; i++) d += map.distance(coords[i], coords[i + 1]);
@@ -1652,6 +1656,8 @@ function drawSegments(segments, snapped = false) {
     // Click: insert waypoint at click position between segIdx and segIdx+1
     hit.on('click', e => {
       L.DomEvent.stopPropagation(e);
+      suppressMapClick = true;
+      setTimeout(() => { suppressMapClick = false; }, 300);
       removeGhostMarker();
       map.getContainer().style.cursor = '';
       insertWaypoint(segIdx, e.latlng.lat, e.latlng.lng);
