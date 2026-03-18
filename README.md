@@ -1,4 +1,5 @@
 # GPXRouteBuilder
+**Use it! **https://caledavis.github.io/GPXRouteBuilder/
 Plan a cycling trip with turn-by-turn navigation on your GPS.
 ## What does this do?
 There are a lot of online route planners that produce GPX _tracks_. But there are no free ones which allow you to create GPX _routes_. This one does.
@@ -15,5 +16,11 @@ When you tell your GPS to navigate along a _route_, the GPS itself figures out t
 Navigating along _tracks_, however, is not good for navigation because:
 1. Even if you have a routable map on your GPS, the track is not 'snapped' to the roads;
 2. Your GPS will not provide turn-by-turn navigation, meaning you have to be 'head down' in your GPS the whole time to make sure you don't miss a turn.
+## Handy Features
+1. Three different routing engines you can pick from which make routes appropriate for cyclists (which can even be toggled off entirely);
+2. You can choose whether you want to see the CyclOSM map or the OpenStreetMap;
+3. The option to toggle on and off international, national, regional, and local waymarked cycling routes;
+4. The option to upload GPX files as overlays (so, for example, you can see where you've cycled in the past);
+5. A greyscale toggle in case the map looks a bit too confusing.
 ## How was it made?
 This tool was vibe coded with Claude using Sonnet 4.6.
