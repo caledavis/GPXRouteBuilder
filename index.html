@@ -1020,8 +1020,9 @@
   </div>
   <div class="header-controls">
     <div class="toggle-group" id="map-toggle">
-      <button class="toggle-btn active" data-map="cyclosm">CyclOSM</button>
+      <button class="toggle-btn" data-map="cyclosm">CyclOSM</button>
       <button class="toggle-btn" data-map="osm"><span class="full">OpenStreetMap</span><span class="short">OSM</span></button>
+      <button class="toggle-btn active" data-map="voyager">Voyager</button>
     </div>
     <button class="grey-btn" id="grey-btn" title="Toggle greyscale map">◑</button>
     <div class="snap-toggle" id="snap-toggle">
@@ -1231,16 +1232,22 @@ const osmStd = L.tileLayer(
   'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
 );
+const tonerLite = L.tileLayer(
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+  { maxZoom: 20, subdomains: 'abcd', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' }
+);
 
-const map = L.map('map', { center: [52.08, 4.31], zoom: 11, layers: [cyclOSM] });
-let currentTile = cyclOSM;
+const tiles = { cyclosm: cyclOSM, osm: osmStd, voyager: tonerLite };
+
+const map = L.map('map', { center: [52.08, 4.31], zoom: 11, layers: [tonerLite] });
+let currentTile = tonerLite;
 
 document.querySelectorAll('#map-toggle .toggle-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#map-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     map.removeLayer(currentTile);
-    currentTile = btn.dataset.map === 'cyclosm' ? cyclOSM : osmStd;
+    currentTile = tiles[btn.dataset.map] || cyclOSM;
     map.addLayer(currentTile);
     currentTile.bringToBack();
   });
