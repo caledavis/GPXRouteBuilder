@@ -87,9 +87,10 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    flex-shrink: 0;
+    flex-shrink: 1;
+    min-width: 0;
   }
-  .logo-text { display: flex; flex-direction: column; gap: 1px; }
+  .logo-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .logo-subtitle {
     font-family: var(--sans);
     font-size: 10px;
@@ -97,6 +98,9 @@
     letter-spacing: 0.02em;
     color: var(--text-dim);
     line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
   .logo-icon {
     width: 28px; height: 28px;
@@ -107,7 +111,7 @@
     font-size: 14px;
   }
 
-  .header-controls { display: flex; align-items: center; gap: 10px; }
+  .header-controls { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 
   .toggle-group {
     display: flex;
@@ -863,6 +867,34 @@
   .leaflet-control-attribution { background: var(--hint-bg) !important; color: var(--text-dim) !important; font-size: 9px !important; }
   .leaflet-control-attribution a { color: var(--accent2) !important; }
 
+  /* ── Responsive header ── */
+
+  /* Below ~900px: hide the subtitle */
+  @media (max-width: 900px) {
+    .logo-subtitle { display: none; }
+    .header-controls { gap: 7px; }
+  }
+
+  /* Below ~780px: shorten "OpenStreetMap" to "OSM" and reduce gaps */
+  @media (max-width: 780px) {
+    .toggle-btn[data-map="osm"] .full { display: none; }
+    .toggle-btn[data-map="osm"] .short { display: inline; }
+    .toggle-btn { padding: 6px 10px; }
+    .header-controls { gap: 6px; }
+  }
+
+  /* Below ~660px: shorten "SNAP TO PATH" to "SNAP" */
+  @media (max-width: 660px) {
+    .snap-label .full { display: none; }
+    .snap-label .short { display: inline; }
+    .snap-toggle { padding: 6px 8px; }
+    header { padding: 0 12px; }
+  }
+
+  /* Default: .short spans hidden, .full spans visible */
+  .short { display: none; }
+  .full  { display: inline; }
+
   @keyframes fadeIn { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
   .waypoint-item { animation: fadeIn 0.18s ease; }
 </style>
@@ -880,12 +912,12 @@
   <div class="header-controls">
     <div class="toggle-group" id="map-toggle">
       <button class="toggle-btn active" data-map="cyclosm">CyclOSM</button>
-      <button class="toggle-btn" data-map="osm">OpenStreetMap</button>
+      <button class="toggle-btn" data-map="osm"><span class="full">OpenStreetMap</span><span class="short">OSM</span></button>
     </div>
     <button class="grey-btn" id="grey-btn" title="Toggle greyscale map">◑</button>
     <div class="snap-toggle" id="snap-toggle">
       <div class="switch"></div>
-      SNAP TO PATH
+      <span class="snap-label"><span class="full">SNAP TO PATH</span><span class="short">SNAP</span></span>
     </div>
     <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
     <button class="theme-btn" id="theme-btn" title="Toggle light / dark theme">☀️</button>
