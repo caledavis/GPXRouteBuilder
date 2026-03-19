@@ -642,8 +642,8 @@
     top: 12px;
     left: 50%; transform: translateX(-50%);
     background: var(--surface);
-    border: 1px solid var(--accent2);
-    color: var(--accent2);
+    border: 1px solid #ca8a04;
+    color: #854d0e;
     padding: 6px 14px;
     border-radius: 20px;
     font-family: var(--mono);
@@ -659,7 +659,7 @@
     gap: 7px;
   }
   .show-all-badge.visible { display: flex; }
-  .show-all-badge:hover { background: rgba(8,145,178,0.08); }
+  .show-all-badge:hover { background: rgba(202,138,4,0.10); }
 
   /* ── PREVIEW PANEL ── */
   .preview-panel {
@@ -1466,8 +1466,8 @@ async function makeBrightLayer() {
     const src = layer['source-layer'] || '';
     const id  = (layer.id || '').toLowerCase();
 
-    // Capitalise city/town/village names, make bold, and soften text colour
-    if (src === 'place' && (id.includes('city') || id.includes('town') || id.includes('village') || id.includes('place'))) {
+    // Capitalise city/town/village/country names, make bold, and soften text colour
+    if (src === 'place' && (id.includes('city') || id.includes('town') || id.includes('village') || id.includes('place') || id.includes('country'))) {
       layer.layout = layer.layout || {};
       layer.layout['text-transform'] = 'uppercase';
       layer.layout['text-letter-spacing'] = 0.15;
@@ -1641,7 +1641,7 @@ document.querySelectorAll('#map-toggle .toggle-btn').forEach(btn => {
 });
 
 /* Smart overlay refresh: only re-fetch when view leaves cached bbox */
-map.on('moveend', () => {
+function checkOverlayBboxes() {
   const b = map.getBounds();
   Object.keys(NET_CFG).forEach(k => {
     if (!OV[k].enabled) return;
@@ -1649,9 +1649,9 @@ map.on('moveend', () => {
     // Always refetch when a filter is active — the user may have zoomed out
     // to reveal new segments of the filtered route outside the cached bbox.
     // Otherwise only refetch when the viewport leaves the buffered bbox.
-    if (OV[k].filteredName || !fb ||
+    if (!OV[k].loading && (OV[k].filteredName || !fb ||
         b.getSouth() < fb.s || b.getWest()  < fb.w ||
-        b.getNorth() > fb.n || b.getEast()  > fb.e) {
+        b.getNorth() > fb.n || b.getEast()  > fb.e)) {
       refreshOverlay(k);
     }
   });
@@ -1663,7 +1663,8 @@ map.on('moveend', () => {
       refreshKnooppunten();
     }
   }
-});
+}
+map.on('moveend', checkOverlayBboxes);
 
 /* ── GPX Preview panel toggle ── */
 document.getElementById('preview-toggle-btn').addEventListener('click', () => {
@@ -1849,6 +1850,8 @@ out geom qt;`;
     const data = await resp.json();
     if (data.elements === undefined || (data.remark && data.remark.includes('error'))) {
       console.warn('Overpass error for', net, data.remark || '(no elements)');
+      state.loading = false;
+      row.classList.remove('loading');
       return;
     }
     if (state.enabled) {
@@ -1859,12 +1862,11 @@ out geom qt;`;
       newLg.addTo(map);
       // Reapply any active route filter to the freshly built layer
       if (state.filteredName) applyRouteFilter(net, state.filteredName);
-      // Force Leaflet to redraw the overlay pane immediately without waiting
-      // for a user-triggered zoom or pan event
-      map.getPanes().overlayPane.style.display = 'none';
-      map.getPanes().overlayPane.offsetHeight; // force reflow
-      map.getPanes().overlayPane.style.display = '';
       if (routeLayer) routeLayer.bringToFront();
+      // Fire 'moveend' to trigger L.Renderer._update(), which repositions and
+      // repaints all SVG overlay paths. This is safe because checkOverlayBboxes
+      // now skips any overlay that is currently loading, preventing re-entrancy.
+      map.fire('moveend');
     }
   } catch (err) {
     console.warn('Overlay fetch failed for', net, err);
@@ -2188,7 +2190,7 @@ function setRoutedByBadge(svc) {
   if (!svc || !snapEnabled) { badge.classList.remove('visible'); return; }
   const label    = SERVICE_LABELS[svc] || svc;
   const fellBack = svc === 'valhalla';
-  badge.textContent = fellBack ? `Routing via ${label} (BRouter unavailable)` : `Routing via ${label}`;
+  badge.textContent = `Route: ${label}`;
   badge.title       = fellBack ? 'BRouter was unavailable — routed via Valhalla instead' : 'Routed via BRouter';
   badge.classList.add('visible');
 }
@@ -2661,112 +2663,139 @@ function renderSidebar() {
     }
   }
 
+  // ── Shared reorder helpers (used by both pointer and touch paths) ──
+  function reorderStart(item, clientY) {
+    reorderSrcIdx = +item.dataset.index;
+    reorderClone = item.cloneNode(true);
+    reorderClone.style.cssText = `
+      position: fixed; pointer-events: none; z-index: 9999;
+      width: ${item.offsetWidth}px; opacity: 0.9;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+      border-radius: 7px; left: ${item.getBoundingClientRect().left}px;
+      top: ${clientY - 16}px;
+      border: 1px solid var(--accent2);
+    `;
+    document.body.appendChild(reorderClone);
+    item.classList.add('dragging');
+    dropIndicator = document.createElement('div');
+    dropIndicator.className = 'wp-drop-indicator';
+    dropIndicator.style.height = item.offsetHeight + 'px';
+    dropInsertAt = reorderSrcIdx;
+    positionIndicator(dropInsertAt);
+  }
+
+  function reorderMove(clientY) {
+    if (reorderSrcIdx === null || !reorderClone) return;
+    reorderClone.style.top = (clientY - 16) + 'px';
+    const raw = getInsertAt(clientY);
+    if (raw === dropInsertAt) return;
+    const items = [...list.querySelectorAll('.waypoint-item:not(.dragging)')];
+    const before = new Map();
+    items.forEach(el => { before.set(el, el.getBoundingClientRect().top); });
+    dropInsertAt = raw;
+    positionIndicator(dropInsertAt);
+    items.forEach(el => {
+      const oldTop = before.get(el);
+      const newTop = el.getBoundingClientRect().top;
+      const delta  = oldTop - newTop;
+      if (Math.abs(delta) < 1) return;
+      el.classList.remove('wp-flip-transition');
+      el.style.transform = `translateY(${delta}px)`;
+      el.getBoundingClientRect();
+      el.classList.add('wp-flip-transition');
+      el.style.transform = '';
+      el.addEventListener('transitionend', () => {
+        el.classList.remove('wp-flip-transition');
+        el.style.transform = '';
+      }, { once: true });
+    });
+  }
+
+  function reorderEnd() {
+    if (reorderSrcIdx === null) return;
+    let insertAt = dropInsertAt ?? reorderSrcIdx;
+    if (insertAt > reorderSrcIdx) insertAt--;
+    list.querySelectorAll('.waypoint-item').forEach(el => {
+      el.classList.remove('dragging');
+      el.style.opacity = '';
+    });
+    dropIndicator?.remove(); dropIndicator = null;
+    reorderClone?.remove();  reorderClone  = null;
+    if (insertAt !== reorderSrcIdx) {
+      const [moved] = waypoints.splice(reorderSrcIdx, 1);
+      waypoints.splice(insertAt, 0, moved);
+      selectedIndex = insertAt;
+      invalidateSegments([reorderSrcIdx - 1, reorderSrcIdx, insertAt - 1, insertAt]);
+      resequenceNames();
+      refreshIcons();
+      updateAll();
+    } else {
+      renderSidebar();
+    }
+    reorderSrcIdx = null;
+    dropInsertAt  = null;
+  }
+
+  function reorderCancel() {
+    list.querySelectorAll('.waypoint-item').forEach(el => {
+      el.classList.remove('dragging');
+      el.style.opacity = '';
+    });
+    dropIndicator?.remove(); dropIndicator = null;
+    reorderClone?.remove();  reorderClone  = null;
+    reorderSrcIdx = null;
+    dropInsertAt  = null;
+    renderSidebar();
+  }
+
   list.querySelectorAll('.wp-drag').forEach(handle => {
+    // ── Pointer events (mouse / stylus, and pointer-capable touch on non-Safari) ──
     handle.addEventListener('pointerdown', e => {
+      // On iOS Safari, touch events are more reliable; skip pointer path for touch input
+      if (e.pointerType === 'touch') return;
       e.stopPropagation();
       const item = handle.closest('.waypoint-item');
-      reorderSrcIdx = +item.dataset.index;
-
-      // Visual clone that follows the pointer
-      reorderClone = item.cloneNode(true);
-      reorderClone.style.cssText = `
-        position: fixed; pointer-events: none; z-index: 9999;
-        width: ${item.offsetWidth}px; opacity: 0.9;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
-        border-radius: 7px; left: ${item.getBoundingClientRect().left}px;
-        top: ${item.getBoundingClientRect().top}px;
-        border: 1px solid var(--accent2);
-      `;
-      document.body.appendChild(reorderClone);
-      item.classList.add('dragging');
-
-      // Create drop indicator sized to match the dragged item
-      dropIndicator = document.createElement('div');
-      dropIndicator.className = 'wp-drop-indicator';
-      dropIndicator.style.height = item.offsetHeight + 'px';
-      dropInsertAt = reorderSrcIdx;
-      positionIndicator(dropInsertAt);
-
-      handle.setPointerCapture(e.pointerId);
+      reorderStart(item, e.clientY);
+      try { handle.setPointerCapture(e.pointerId); } catch(_) {}
     });
 
     handle.addEventListener('pointermove', e => {
-      if (reorderSrcIdx === null || !reorderClone) return;
-      reorderClone.style.top = (e.clientY - 16) + 'px';
-
-      // Compute new insertion point
-      const raw = getInsertAt(e.clientY);
-      if (raw === dropInsertAt) return; // nothing changed — skip animation work
-
-      // ── FLIP: record positions BEFORE the DOM change ──
-      const items = [...list.querySelectorAll('.waypoint-item:not(.dragging)')];
-      const before = new Map();
-      items.forEach(el => { before.set(el, el.getBoundingClientRect().top); });
-
-      dropInsertAt = raw;
-      positionIndicator(dropInsertAt);
-
-      // ── FLIP: animate items from their old positions to new ones ──
-      items.forEach(el => {
-        const oldTop = before.get(el);
-        const newTop = el.getBoundingClientRect().top;
-        const delta  = oldTop - newTop;
-        if (Math.abs(delta) < 1) return; // no meaningful movement
-        // Remove any ongoing transition, snap to old position, then animate to new
-        el.classList.remove('wp-flip-transition');
-        el.style.transform = `translateY(${delta}px)`;
-        // Force reflow so the browser registers the starting transform
-        el.getBoundingClientRect();
-        el.classList.add('wp-flip-transition');
-        el.style.transform = '';
-        // Clean up transition class after it completes
-        el.addEventListener('transitionend', () => {
-          el.classList.remove('wp-flip-transition');
-          el.style.transform = '';
-        }, { once: true });
-      });
+      if (e.pointerType === 'touch') return;
+      reorderMove(e.clientY);
     });
 
     handle.addEventListener('pointerup', e => {
-      if (reorderSrcIdx === null) return;
-
-      let insertAt = dropInsertAt ?? reorderSrcIdx;
-      // Adjust index for the item being removed from its original position
-      if (insertAt > reorderSrcIdx) insertAt--;
-
-      // Clean up visuals
-      list.querySelectorAll('.waypoint-item').forEach(el => {
-        el.classList.remove('dragging');
-        el.style.opacity = '';
-      });
-      dropIndicator?.remove(); dropIndicator = null;
-      reorderClone?.remove();  reorderClone  = null;
-
-      if (insertAt !== reorderSrcIdx) {
-        const [moved] = waypoints.splice(reorderSrcIdx, 1);
-        waypoints.splice(insertAt, 0, moved);
-        selectedIndex = insertAt;
-        invalidateSegments([reorderSrcIdx - 1, reorderSrcIdx, insertAt - 1, insertAt]);
-        resequenceNames();
-        refreshIcons();
-        updateAll();
-      } else {
-        renderSidebar(); // re-render to remove dragging class cleanly
-      }
-      reorderSrcIdx = null;
-      dropInsertAt  = null;
+      if (e.pointerType === 'touch') return;
+      reorderEnd();
     });
 
-    handle.addEventListener('pointercancel', () => {
-      list.querySelectorAll('.waypoint-item').forEach(el => {
-        el.classList.remove('dragging');
-        el.style.opacity = '';
-      });
-      dropIndicator?.remove(); dropIndicator = null;
-      reorderClone?.remove();  reorderClone  = null;
-      reorderSrcIdx = null;
-      dropInsertAt  = null;
-      renderSidebar();
+    handle.addEventListener('pointercancel', e => {
+      if (e.pointerType === 'touch') return;
+      reorderCancel();
+    });
+
+    // ── Touch events (iPad Safari & all iOS) ──
+    handle.addEventListener('touchstart', e => {
+      if (e.touches.length !== 1) return;
+      e.preventDefault(); // prevent scroll and long-press context menu
+      e.stopPropagation();
+      const item = handle.closest('.waypoint-item');
+      reorderStart(item, e.touches[0].clientY);
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', e => {
+      if (reorderSrcIdx === null) return;
+      e.preventDefault(); // prevent the waypoints list from scrolling during drag
+      reorderMove(e.touches[0].clientY);
+    }, { passive: false });
+
+    handle.addEventListener('touchend', e => {
+      e.preventDefault();
+      reorderEnd();
+    }, { passive: false });
+
+    handle.addEventListener('touchcancel', () => {
+      reorderCancel();
     });
   });
 
@@ -3456,7 +3485,18 @@ function updateShowAllBadge() {
 }
 
 document.getElementById('show-all-badge').addEventListener('click', () => {
-  Object.keys(NET_CFG).forEach(k => applyRouteFilter(k, null));
+  Object.keys(NET_CFG).forEach(k => {
+    applyRouteFilter(k, null);
+    // If the viewport has grown beyond the cached bbox since the filter was
+    // applied, the existing layer is missing data — force a fresh fetch.
+    if (!OV[k].enabled) return;
+    const fb = OV[k].fetchedBbox;
+    const b  = map.getBounds();
+    if (!fb || b.getSouth() < fb.s || b.getWest()  < fb.w ||
+               b.getNorth() > fb.n || b.getEast()  > fb.e) {
+      refreshOverlay(k);
+    }
+  });
 });
 
 document.getElementById('route-ctx-only').addEventListener('click', () => {
