@@ -1060,24 +1060,25 @@
   }
 
   .attr-btn {
-    height: var(--ctrl-h);
-    padding: 0 12px;
+    width: var(--ctrl-h); height: var(--ctrl-h);
+    padding: 0;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
     cursor: pointer;
-    font-size: 11px;
+    font-size: 14px;
     font-family: var(--mono);
     color: var(--text-dim);
-    letter-spacing: 0.04em;
     transition: all 0.2s;
     white-space: nowrap;
     flex-shrink: 0;
-    display: flex; align-items: center;
+    display: flex; align-items: center; justify-content: center;
     box-sizing: border-box;
   }
   .attr-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.06); }
 </style>
+<script data-goatcounter="https://caledavis.goatcounter.com/count"
+        async src="//gc.zgo.at/count.js"></script>
 </head>
 <body>
 
@@ -1103,7 +1104,7 @@
       <span class="snap-label"><span class="full">SNAP TO PATH</span><span class="short">SNAP</span></span>
     </div>
     <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
-    <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions">© Credits</button>
+    <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions">©</button>
   </div>
 </header>
 
@@ -1173,11 +1174,10 @@
           <div class="overlay-switch"></div>
         </div>
       </div>
-      <div class="names-toggle-row active" id="names-toggle">
+      <div class="names-toggle-row" id="names-toggle">
         <span class="names-toggle-label">Show route names</span>
         <div class="names-toggle-switch"></div>
       </div>
-      <p class="overlay-note">Pans without re-fetching · reloads when view leaves cached area</p>
     </div>
 
     <div class="sidebar-section">
@@ -1535,7 +1535,7 @@ document.querySelectorAll('.overlay-row').forEach(row => {
 });
 
 /* ── Route names toggle ── */
-let showRouteNames = true;
+let showRouteNames = false;
 
 document.getElementById('names-toggle').addEventListener('click', () => {
   showRouteNames = !showRouteNames;
@@ -2756,6 +2756,14 @@ if (window.innerWidth <= 500) {
         are displayed on the map as required by ODbL and tile usage policies.
       </div>
 
+      <div class="attr-card" style="border-color: rgba(22,163,74,0.3); background: rgba(22,163,74,0.04);">
+        <div class="attr-name">
+          <a href="https://claude.ai" target="_blank">Vibe-coded with Claude</a>
+          <span class="attr-licence">Anthropic</span>
+        </div>
+        <div class="attr-desc">This tool was designed and built collaboratively with Claude, Anthropic's AI assistant.</div>
+      </div>
+
       <div>
         <div class="attr-section-title">Map Data</div>
         <div class="attr-card">
@@ -2871,6 +2879,17 @@ if (window.innerWidth <= 500) {
             <span class="attr-licence grey">SIL OFL 1.1</span>
           </div>
           <div class="attr-desc">Used for labels on the Bright vector map, served via the OpenMapTiles font CDN. Designed by Chris Simpson.</div>
+        </div>
+      </div>
+
+      <div>
+        <div class="attr-section-title">Analytics</div>
+        <div class="attr-card">
+          <div class="attr-name">
+            <a href="https://www.goatcounter.com" target="_blank">GoatCounter</a>
+            <span class="attr-licence grey">EUPL 1.2</span>
+          </div>
+          <div class="attr-desc">Privacy-friendly, cookie-free web analytics. No personal data collected. Developed by Martin Tournoij.</div>
         </div>
       </div>
 
