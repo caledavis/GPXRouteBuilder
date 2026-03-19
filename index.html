@@ -425,6 +425,18 @@
   .names-toggle-row.active .names-toggle-switch { background: var(--accent2); }
   .names-toggle-row.active .names-toggle-switch::after { left: 13px; }
 
+  .knoop-spinner {
+    width: 13px; height: 13px;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent2);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    flex-shrink: 0;
+    display: none;
+  }
+  #knoop-toggle.loading .knoop-spinner { display: block; }
+  #knoop-toggle.loading .names-toggle-switch { display: none; }
+
   /* ── waypoints ── */
   .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
   .waypoints-header {
@@ -436,18 +448,18 @@
   .waypoints-header h3 { font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; }
   .waypoint-count { font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 10px; }
 
-  .waypoints-list { flex: 1; overflow-y: auto; padding: 8px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+  .waypoints-list { flex: 1; overflow-y: auto; padding: 6px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
   .waypoints-list::-webkit-scrollbar { width: 4px; }
   .waypoints-list::-webkit-scrollbar-track { background: transparent; }
   .waypoints-list::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
 
   .waypoint-item {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 10px;
-    border-radius: 8px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 8px;
+    border-radius: 7px;
     border: 1px solid var(--border);
     background: var(--surface2);
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     transition: border-color 0.2s, background 0.2s;
     cursor: pointer;
   }
@@ -465,18 +477,17 @@
   .wp-info { flex: 1; min-width: 0; }
   .wp-name-input {
     background: transparent; border: none; color: var(--text);
-    font-family: var(--sans); font-size: 12px; font-weight: 500;
+    font-family: var(--sans); font-size: 11px; font-weight: 500;
     width: 100%; outline: none; padding: 0;
   }
   .wp-name-input:focus { color: var(--accent2); }
-  .wp-coords { font-family: var(--mono); font-size: 10px; color: var(--text-dim); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .wp-actions { display: flex; gap: 4px; flex-shrink: 0; }
+  .wp-actions { display: flex; gap: 3px; flex-shrink: 0; }
   .wp-btn {
-    width: 24px; height: 24px;
-    background: transparent; border: 1px solid var(--border); border-radius: 5px;
+    width: 20px; height: 20px;
+    background: transparent; border: 1px solid var(--border); border-radius: 4px;
     color: var(--text-dim); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
-    font-size: 12px; transition: all 0.15s;
+    font-size: 11px; transition: all 0.15s;
   }
   .wp-btn:hover        { border-color: var(--danger);  color: var(--danger);  background: rgba(220,38,38,0.1); }
   .wp-btn.up:hover,
@@ -485,17 +496,17 @@
   .wp-drag {
     display: flex;
     flex-direction: column;
-    gap: 2.5px;
+    gap: 2px;
     justify-content: center;
     align-items: center;
-    width: 14px;
+    width: 10px;
     flex-shrink: 0;
     cursor: grab;
     opacity: 0.3;
     transition: opacity 0.15s;
     padding: 2px 0;
     self-select: none;
-    touch-action: none;   /* prevent iOS scroll interfering with drag */
+    touch-action: none;
   }
   .wp-drag:active { cursor: grabbing; }
   .waypoint-item:hover .wp-drag { opacity: 0.6; }
@@ -505,9 +516,17 @@
     background: currentColor;
     border-radius: 1px;
   }
-  .waypoint-item.drag-over-top    { border-top: 2px solid var(--accent2); }
-  .waypoint-item.drag-over-bottom { border-bottom: 2px solid var(--accent2); }
-  .waypoint-item.dragging         { opacity: 0.4; }
+  .waypoint-item.dragging { opacity: 0.35; }
+
+  /* Drop indicator — a full-height gap showing where the item will land */
+  .wp-drop-indicator {
+    border: 2px dashed var(--accent2);
+    border-radius: 7px;
+    background: rgba(8,145,178,0.06);
+    margin-bottom: 4px;
+    pointer-events: none;
+    box-sizing: border-box;
+  }
 
   .empty-state { padding: 24px 16px; text-align: center; color: var(--text-dim); font-size: 12px; line-height: 1.7; }
   .empty-state .icon { font-size: 26px; margin-bottom: 8px; }
@@ -616,6 +635,31 @@
     white-space: nowrap; transition: background 0.25s;
   }
 
+  .show-all-badge {
+    display: none;
+    position: absolute;
+    top: 12px;
+    left: 50%; transform: translateX(-50%);
+    background: var(--surface);
+    border: 1px solid var(--accent2);
+    color: var(--accent2);
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    z-index: 1000;
+    backdrop-filter: blur(6px);
+    white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+    transition: background 0.15s, color 0.15s;
+    align-items: center;
+    gap: 7px;
+  }
+  .show-all-badge.visible { display: flex; }
+  .show-all-badge:hover { background: rgba(8,145,178,0.08); }
+
   /* ── PREVIEW PANEL ── */
   .preview-panel {
     width: 270px; flex-shrink: 0;
@@ -702,10 +746,10 @@
   }
 
   .wp-sym-btn {
-    width: 28px; height: 28px;
+    width: 22px; height: 22px;
     background: transparent;
     border: 1px solid var(--border);
-    border-radius: 6px;
+    border-radius: 5px;
     cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
@@ -1088,6 +1132,22 @@
     box-sizing: border-box;
   }
   .attr-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.06); }
+
+  /* ── Knooppunt markers ── */
+  .knoop-marker {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid #007d00;
+    background: white;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; font-weight: 700;
+    color: #007d00;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+    white-space: nowrap;
+    line-height: 1;
+  }
+
   /* ── Map marker context menu ── */
   .ctx-menu {
     position: fixed;
@@ -1234,13 +1294,13 @@
           <div class="overlay-spinner"></div>
           <div class="overlay-switch"></div>
         </div>
-        <div class="overlay-row" id="ov-rcn" style="--ov-color:#bb00bb" title="Regional cycling networks">
+        <div class="overlay-row" id="ov-rcn" style="--ov-color:#007d00" title="Regional cycling networks">
           <div class="overlay-pip"></div>
           <span class="overlay-label">Regional (RCN)</span>
           <div class="overlay-spinner"></div>
           <div class="overlay-switch"></div>
         </div>
-        <div class="overlay-row" id="ov-lcn" style="--ov-color:#007d00" title="Local cycling networks">
+        <div class="overlay-row" id="ov-lcn" style="--ov-color:#bb00bb" title="Local cycling networks">
           <div class="overlay-pip"></div>
           <span class="overlay-label">Local (LCN)</span>
           <div class="overlay-spinner"></div>
@@ -1249,6 +1309,11 @@
       </div>
       <div class="names-toggle-row" id="names-toggle">
         <span class="names-toggle-label">Show route names</span>
+        <div class="names-toggle-switch"></div>
+      </div>
+      <div class="names-toggle-row" id="knoop-toggle">
+        <span class="names-toggle-label">Show knooppunten</span>
+        <div class="knoop-spinner"></div>
         <div class="names-toggle-switch"></div>
       </div>
     </div>
@@ -1283,6 +1348,7 @@
   <div class="map-container">
     <div id="map"></div>
     <div class="map-hint">Click map to add via points · Drag markers to move</div>
+    <button class="show-all-badge" id="show-all-badge">↩ Show all routes</button>
   </div>
 
   <div class="preview-panel collapsed" id="preview-panel">
@@ -1308,6 +1374,17 @@
   </button>
 </div>
 
+<!-- ── Route filter popup ── -->
+<div class="ctx-menu" id="route-ctx-menu">
+  <div class="ctx-menu-label" id="route-ctx-label"></div>
+  <button class="ctx-menu-item" id="route-ctx-only">
+    <span class="ctx-menu-icon">⊙</span> <span id="route-ctx-only-label">Show only this route</span>
+  </button>
+  <button class="ctx-menu-item" id="route-ctx-all">
+    <span class="ctx-menu-icon">↩</span> Show all routes
+  </button>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script>
@@ -1316,10 +1393,10 @@ const MAX_PER_FILE = 40;
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
 
 const NET_CFG = {
-  icn: { color: '#e8000d', weight: 5,   opacity: 0.9,  dash: null,  showNames: true  },
-  ncn: { color: '#0000ff', weight: 4,   opacity: 0.85, dash: null,  showNames: true  },
-  rcn: { color: '#bb00bb', weight: 3,   opacity: 0.80, dash: null,  showNames: false },
-  lcn: { color: '#007d00', weight: 2.5, opacity: 0.75, dash: '5 3', showNames: false },
+  icn: { color: '#e8000d', weight: 5,   opacity: 0.9,  dash: null,  showNames: true,  showLabels: true  },
+  ncn: { color: '#0000ff', weight: 4,   opacity: 0.85, dash: null,  showNames: true,  showLabels: true  },
+  rcn: { color: '#007d00', weight: 3,   opacity: 0.80, dash: null,  showNames: true,  showLabels: false },
+  lcn: { color: '#bb00bb', weight: 2.5, opacity: 0.75, dash: null,  showNames: true,  showLabels: false },
 };
 
 let waypoints     = [];
@@ -1331,7 +1408,7 @@ let activeTab     = 0;
 
 const OV = {};
 Object.keys(NET_CFG).forEach(k => {
-  OV[k] = { enabled: false, loading: false, layer: null, allAdded: [], fetchedBbox: null };
+  OV[k] = { enabled: false, loading: false, layer: null, allAdded: [], fetchedBbox: null, filteredName: null };
 });
 
 /* ── Map ── */
@@ -1568,12 +1645,23 @@ map.on('moveend', () => {
   Object.keys(NET_CFG).forEach(k => {
     if (!OV[k].enabled) return;
     const fb = OV[k].fetchedBbox;
-    if (!fb ||
+    // Always refetch when a filter is active — the user may have zoomed out
+    // to reveal new segments of the filtered route outside the cached bbox.
+    // Otherwise only refetch when the viewport leaves the buffered bbox.
+    if (OV[k].filteredName || !fb ||
         b.getSouth() < fb.s || b.getWest()  < fb.w ||
         b.getNorth() > fb.n || b.getEast()  > fb.e) {
       refreshOverlay(k);
     }
   });
+  // Knooppunten re-fetch when view leaves cached area
+  if (knoopEnabled) {
+    const fb = knoopFetchedBbox;
+    if (!fb || b.getSouth() < fb.s || b.getWest() < fb.w ||
+               b.getNorth() > fb.n || b.getEast() > fb.e) {
+      refreshKnooppunten();
+    }
+  }
 });
 
 /* ── GPX Preview panel toggle ── */
@@ -1628,6 +1716,77 @@ document.getElementById('names-toggle').addEventListener('click', () => {
   applyNamesVisibility();
 });
 
+/* ── Knooppunten (cycle junction nodes, common in NL/BE/DE) ── */
+let knoopEnabled = false;
+let knoopLayer   = null;
+let knoopFetchedBbox = null;
+let knoopLoading = false;
+
+document.getElementById('knoop-toggle').addEventListener('click', () => {
+  if (knoopLoading) return;
+  knoopEnabled = !knoopEnabled;
+  document.getElementById('knoop-toggle').classList.toggle('active', knoopEnabled);
+  if (!knoopEnabled) {
+    if (knoopLayer) { map.removeLayer(knoopLayer); knoopLayer = null; }
+    knoopFetchedBbox = null;
+    return;
+  }
+  refreshKnooppunten();
+});
+
+async function refreshKnooppunten() {
+  if (!knoopEnabled || knoopLoading) return;
+  knoopLoading = true;
+  document.getElementById('knoop-toggle').classList.add('loading');
+  try {
+    const b = map.getBounds();
+    const BUFFER = 0.1;
+    const s = b.getSouth() - BUFFER, w = b.getWest()  - BUFFER;
+    const n = b.getNorth() + BUFFER, e = b.getEast()  + BUFFER;
+    const bbox = `${s},${w},${n},${e}`;
+    // Fetch numbered junction nodes — rcn_ref for regional, lcn_ref for local
+    const query = `[out:json][timeout:20];
+(
+  node["rcn_ref"](${bbox});
+  node["lcn_ref"](${bbox});
+);
+out body qt;`;
+    const resp = await fetch(OVERPASS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(query),
+    });
+    const data = await resp.json();
+    if (!knoopEnabled) return;
+
+    const group = L.layerGroup();
+    (data.elements || []).forEach(el => {
+      if (el.type !== 'node') return;
+      const ref = el.tags?.rcn_ref || el.tags?.lcn_ref || '?';
+      const color = el.tags?.rcn_ref ? '#007d00' : '#bb00bb';
+      L.marker([el.lat, el.lon], {
+        interactive: false,
+        icon: L.divIcon({
+          className: '',
+          html: `<div class="knoop-marker" style="border-color:${color};color:${color}">${escapeHtml(ref)}</div>`,
+          iconSize: [22, 22], iconAnchor: [11, 11],
+        }),
+        zIndexOffset: -100,
+      }).addTo(group);
+    });
+
+    if (knoopLayer) map.removeLayer(knoopLayer);
+    knoopLayer = group;
+    knoopFetchedBbox = { s, w, n, e };
+    group.addTo(map);
+    if (routeLayer) routeLayer.bringToFront();
+  } catch (err) {
+    console.warn('Knooppunten fetch failed:', err);
+  }
+  knoopLoading = false;
+  document.getElementById('knoop-toggle').classList.remove('loading');
+}
+
 /* Show or hide label markers on all currently loaded layers instantly,
    without needing to re-fetch from Overpass. */
 function applyNamesVisibility() {
@@ -1651,7 +1810,8 @@ function toggleOverlay(net) {
   document.getElementById('ov-' + net).classList.toggle('active', state.enabled);
   if (!state.enabled) {
     state.allAdded.forEach(lg => { try { map.removeLayer(lg); } catch(_) {} });
-    state.allAdded = []; state.layer = null; state.fetchedBbox = null;
+    state.allAdded = []; state.layer = null; state.fetchedBbox = null; state.filteredName = null;
+    updateShowAllBadge();
     return;
   }
   refreshOverlay(net);
@@ -1664,33 +1824,45 @@ async function refreshOverlay(net) {
   state.loading = true;
   row.classList.add('loading');
   try {
+    const BUFFER  = 0.15;
+    const TIMEOUT = 30;
     const b = map.getBounds();
-    const BUFFER = 1.0;
     const s = b.getSouth() - BUFFER, w = b.getWest()  - BUFFER;
     const n = b.getNorth() + BUFFER, e = b.getEast()  + BUFFER;
     const bbox = `${s},${w},${n},${e}`;
-    const query = `[out:json][timeout:45];
+    // For rcn/lcn, also match node-network relations (common in NL/BE) which
+    // use type=route OR type=network with network=rcn/lcn.
+    const query = `[out:json][timeout:${TIMEOUT}];
 (
   relation["route"="bicycle"]["network"="${net}"](${bbox});
+  relation["type"="route"]["network"="${net}"](${bbox});
 )->.routes;
-(
-  .routes;
-  way(r.routes);
-  node(w);
-)->.all;
-.all out body;`;
+.routes out body;
+way(r.routes);
+out geom qt;`;
     const resp = await fetch(OVERPASS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'data=' + encodeURIComponent(query),
     });
     const data = await resp.json();
+    if (data.elements === undefined || (data.remark && data.remark.includes('error'))) {
+      console.warn('Overpass error for', net, data.remark || '(no elements)');
+      return;
+    }
     if (state.enabled) {
       const newLg = buildLayer(net, data);
       state.allAdded.forEach(lg => { try { map.removeLayer(lg); } catch(_) {} });
       state.allAdded = [newLg]; state.layer = newLg;
       state.fetchedBbox = { s, w, n, e };
       newLg.addTo(map);
+      // Reapply any active route filter to the freshly built layer
+      if (state.filteredName) applyRouteFilter(net, state.filteredName);
+      // Force Leaflet to redraw the overlay pane immediately without waiting
+      // for a user-triggered zoom or pan event
+      map.getPanes().overlayPane.style.display = 'none';
+      map.getPanes().overlayPane.offsetHeight; // force reflow
+      map.getPanes().overlayPane.style.display = '';
       if (routeLayer) routeLayer.bringToFront();
     }
   } catch (err) {
@@ -1700,42 +1872,67 @@ async function refreshOverlay(net) {
   row.classList.remove('loading');
 }
 
+// Derive base route name by stripping section suffixes.
+// e.g. "LF Kustroute - 08 - Noordwijk - Oost" → "LF Kustroute"
+// Strips everything from the first occurrence of " - <digits>" onwards.
+function baseRouteName(name) {
+  if (!name) return null;
+  return name.replace(/\s*[-–]\s*\d+.*$/, '').trim();
+}
+
 function buildLayer(net, data) {
   const cfg   = NET_CFG[net];
   const group = L.layerGroup();
-  const nodes = {};
-  (data.elements || []).forEach(el => { if (el.type === 'node') nodes[el.id] = [el.lat, el.lon]; });
+
+  // Way geometry is embedded via "out geom qt"
   const ways = {};
   (data.elements || []).forEach(el => {
-    if (el.type === 'way' && el.nodes) {
-      const coords = el.nodes.map(nid => nodes[nid]).filter(Boolean);
-      if (coords.length >= 2) ways[el.id] = coords;
+    if (el.type === 'way' && el.geometry?.length >= 2) {
+      ways[el.id] = el.geometry.map(pt => [pt.lat, pt.lon]);
     }
   });
+
+  const namesOn  = cfg.showLabels && showRouteNames;
   const labelled = new Set();
-  // Names are shown if this network has showNames=true AND the global toggle is on
-  const namesOn = cfg.showNames && showRouteNames;
+
+  // Track polylines per relation so we can show/hide by route
+  // relationPolys[relationId] = { name, polys: [L.Polyline, ...] }
+  const relationPolys = {};
+
   (data.elements || []).forEach(el => {
     if (el.type !== 'relation' || !el.members) return;
+    const relId     = el.id;
     const routeName = el.tags?.name || el.tags?.ref || null;
     const allCoords = [];
+    const polys     = [];
+
     el.members.forEach(m => {
       if (m.type === 'way' && ways[m.ref]) {
         const wc = ways[m.ref];
         const poly = L.polyline(wc, {
           color: cfg.color, weight: cfg.weight, opacity: cfg.opacity,
           dashArray: cfg.dash, lineJoin: 'round', lineCap: 'round',
-          interactive: cfg.showNames && !!routeName,  // still interactive even if names hidden
+          interactive: true,
         });
-        if (cfg.showNames && routeName) {
+        if (routeName) {
           poly.bindTooltip(routeName, { permanent: false, sticky: true, direction: 'top', offset: [0, -6], className: 'route-label' });
         }
         poly.addTo(group);
         allCoords.push(...wc);
+        polys.push(poly);
+
+        // Right-click opens route filter popup (avoids conflict with map click adding waypoints)
+        poly.on('contextmenu', e => {
+          L.DomEvent.stopPropagation(e);
+          L.DomEvent.preventDefault(e);
+          openRouteCtxMenu(e.originalEvent.clientX, e.originalEvent.clientY, net, relId, routeName);
+        });
       }
     });
-    // Permanent label marker — only for networks that support names, once per unique name
-    if (cfg.showNames && routeName && allCoords.length >= 2 && !labelled.has(routeName)) {
+
+    if (polys.length) relationPolys[relId] = { name: routeName, polys };
+
+    if (cfg.showLabels && routeName && allCoords.length >= 2 && !labelled.has(routeName)) {
       labelled.add(routeName);
       const mid = allCoords[Math.floor(allCoords.length / 2)];
       const lm = L.marker(mid, {
@@ -1746,12 +1943,9 @@ function buildLayer(net, data) {
           iconSize: null, iconAnchor: [0, 10],
         }),
       });
-      // Tag so applyNamesVisibility can find it
       lm._labelFor = routeName;
       lm.addTo(group);
-      // Apply current toggle state immediately
       if (!namesOn) {
-        // Defer until after Leaflet adds it to the DOM
         setTimeout(() => {
           const el = lm.getElement?.();
           if (el) el.style.display = 'none';
@@ -1759,6 +1953,9 @@ function buildLayer(net, data) {
       }
     }
   });
+
+  // Store relation polyline map on the group for later filtering
+  group._relationPolys = relationPolys;
   return group;
 }
 
@@ -1872,6 +2069,10 @@ document.addEventListener('click', e => {
 
 /* ── Attach standard events to a waypoint marker ── */
 function attachMarkerEvents(marker) {
+  let wasDragged = false;
+
+  marker.on('dragstart', () => { wasDragged = false; });
+  marker.on('drag',      () => { wasDragged = true; });
   marker.on('dragend', e => {
     const p = e.target.getLatLng();
     const i = waypoints.findIndex(w => w.marker === marker);
@@ -1890,6 +2091,7 @@ function attachMarkerEvents(marker) {
     el.addEventListener('click', e => {
       e.stopPropagation();
       e.preventDefault();
+      if (wasDragged) { wasDragged = false; return; }
       if (clickTimer) { clearTimeout(clickTimer); clickTimer = null; }
       suppressMapClick = true;
       setTimeout(() => { suppressMapClick = false; }, 300);
@@ -2369,7 +2571,6 @@ function renderSidebar() {
       <button class="wp-sym-btn ${symClass}" data-index="${i}" title="Change waypoint icon">${symSvg}</button>
       <div class="wp-info">
         <input class="wp-name-input" value="${escapeHtml(wp.name)}" data-index="${i}" placeholder="Point name…">
-        <div class="wp-coords">${wp.lat.toFixed(5)}, ${wp.lng.toFixed(5)}</div>
       </div>
       <div class="wp-actions">
         <button class="wp-btn up"   title="Move up"   onclick="moveWaypoint(${i},-1)">↑</button>
@@ -2423,6 +2624,41 @@ function renderSidebar() {
   // ── Waypoint reorder via pointer events (works on mouse + iPad touch) ──
   let reorderSrcIdx = null;
   let reorderClone  = null;
+  let dropIndicator = null;
+  let dropInsertAt  = null;
+
+  function getInsertAt(clientY) {
+    const els = [...list.querySelectorAll('.waypoint-item:not(.dragging)')];
+    if (!els.length) return 0;
+    // Before first item
+    if (clientY < els[0].getBoundingClientRect().top + els[0].offsetHeight / 2) return 0;
+    // After last item
+    if (clientY >= els[els.length - 1].getBoundingClientRect().top + els[els.length - 1].offsetHeight / 2) {
+      return +els[els.length - 1].dataset.index + 1;
+    }
+    for (let i = 0; i < els.length - 1; i++) {
+      const r1 = els[i].getBoundingClientRect();
+      const r2 = els[i + 1].getBoundingClientRect();
+      const mid = (r1.bottom + r2.top) / 2;
+      if (clientY < mid) return +els[i].dataset.index + 1;
+    }
+    return +els[els.length - 1].dataset.index + 1;
+  }
+
+  function positionIndicator(insertAt) {
+    if (!dropIndicator) return;
+    const els = [...list.querySelectorAll('.waypoint-item:not(.dragging)')];
+    if (!els.length) return;
+
+    // Find the element this indicator should appear before
+    const targetEl = els.find(el => +el.dataset.index >= insertAt) || null;
+
+    if (targetEl) {
+      list.insertBefore(dropIndicator, targetEl);
+    } else {
+      list.appendChild(dropIndicator);
+    }
+  }
 
   list.querySelectorAll('.wp-drag').forEach(handle => {
     handle.addEventListener('pointerdown', e => {
@@ -2434,81 +2670,76 @@ function renderSidebar() {
       reorderClone = item.cloneNode(true);
       reorderClone.style.cssText = `
         position: fixed; pointer-events: none; z-index: 9999;
-        width: ${item.offsetWidth}px; opacity: 0.85;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-        border-radius: 8px; left: ${item.getBoundingClientRect().left}px;
+        width: ${item.offsetWidth}px; opacity: 0.9;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.25);
+        border-radius: 7px; left: ${item.getBoundingClientRect().left}px;
         top: ${item.getBoundingClientRect().top}px;
+        border: 1px solid var(--accent2);
       `;
       document.body.appendChild(reorderClone);
-      item.style.opacity = '0.35';
+      item.classList.add('dragging');
+
+      // Create drop indicator sized to match the dragged item
+      dropIndicator = document.createElement('div');
+      dropIndicator.className = 'wp-drop-indicator';
+      dropIndicator.style.height = item.offsetHeight + 'px';
+      dropInsertAt = reorderSrcIdx;
+      positionIndicator(dropInsertAt);
 
       handle.setPointerCapture(e.pointerId);
     });
 
     handle.addEventListener('pointermove', e => {
       if (reorderSrcIdx === null || !reorderClone) return;
-      reorderClone.style.top = (e.clientY - 20) + 'px';
+      reorderClone.style.top = (e.clientY - 16) + 'px';
 
-      // Find which item we're hovering over
-      list.querySelectorAll('.waypoint-item').forEach(el => el.classList.remove('drag-over-top', 'drag-over-bottom'));
-      const els = [...list.querySelectorAll('.waypoint-item')];
-      for (const el of els) {
-        const rect = el.getBoundingClientRect();
-        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
-          const mid = rect.top + rect.height / 2;
-          el.classList.add(e.clientY < mid ? 'drag-over-top' : 'drag-over-bottom');
-          break;
-        }
-      }
+      // Compute and show insertion point
+      let raw = getInsertAt(e.clientY);
+      // Adjust: if inserting after the src, account for it being removed
+      dropInsertAt = raw;
+      positionIndicator(dropInsertAt);
     });
 
     handle.addEventListener('pointerup', e => {
       if (reorderSrcIdx === null) return;
 
-      // Find drop target
-      let insertAt = reorderSrcIdx;
-      let before   = true;
-      const els = [...list.querySelectorAll('.waypoint-item')];
-      for (const el of els) {
-        const rect = el.getBoundingClientRect();
-        if (e.clientY >= rect.top && e.clientY <= rect.bottom) {
-          const tgtIdx = +el.dataset.index;
-          before   = e.clientY < rect.top + rect.height / 2;
-          insertAt = before ? tgtIdx : tgtIdx + 1;
-          if (insertAt > reorderSrcIdx) insertAt--;
-          break;
-        }
-      }
+      let insertAt = dropInsertAt ?? reorderSrcIdx;
+      // Adjust index for the item being removed from its original position
+      if (insertAt > reorderSrcIdx) insertAt--;
 
       // Clean up visuals
       list.querySelectorAll('.waypoint-item').forEach(el => {
-        el.classList.remove('drag-over-top', 'drag-over-bottom');
+        el.classList.remove('dragging');
         el.style.opacity = '';
       });
-      reorderClone?.remove();
-      reorderClone  = null;
+      dropIndicator?.remove(); dropIndicator = null;
+      reorderClone?.remove();  reorderClone  = null;
 
       if (insertAt !== reorderSrcIdx) {
         const [moved] = waypoints.splice(reorderSrcIdx, 1);
         waypoints.splice(insertAt, 0, moved);
         selectedIndex = insertAt;
-        // Invalidate all segments touching either the source or destination position
         invalidateSegments([reorderSrcIdx - 1, reorderSrcIdx, insertAt - 1, insertAt]);
         resequenceNames();
         refreshIcons();
         updateAll();
+      } else {
+        renderSidebar(); // re-render to remove dragging class cleanly
       }
       reorderSrcIdx = null;
+      dropInsertAt  = null;
     });
 
     handle.addEventListener('pointercancel', () => {
       list.querySelectorAll('.waypoint-item').forEach(el => {
-        el.classList.remove('drag-over-top', 'drag-over-bottom');
+        el.classList.remove('dragging');
         el.style.opacity = '';
       });
-      reorderClone?.remove();
-      reorderClone  = null;
+      dropIndicator?.remove(); dropIndicator = null;
+      reorderClone?.remove();  reorderClone  = null;
       reorderSrcIdx = null;
+      dropInsertAt  = null;
+      renderSidebar();
     });
   });
 
@@ -3134,7 +3365,89 @@ const attrModal = document.getElementById('attr-modal');
 document.getElementById('attr-btn').addEventListener('click', () => attrModal.classList.add('open'));
 document.getElementById('attr-modal-close').addEventListener('click', () => attrModal.classList.remove('open'));
 attrModal.addEventListener('click', e => { if (e.target === attrModal) attrModal.classList.remove('open'); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { attrModal.classList.remove('open'); closeCtxMenu(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { attrModal.classList.remove('open'); closeCtxMenu(); closeRouteCtxMenu(); } });
+
+/* ── Route filter popup ── */
+const routeCtxMenu = document.getElementById('route-ctx-menu');
+let routeCtxNet  = null;
+let routeCtxName = null;
+
+function openRouteCtxMenu(x, y, net, relId, name) {
+  routeCtxNet  = net;
+  routeCtxName = baseRouteName(name);
+
+  // Show the base name in the label so user sees "LF Kustroute" not "LF Kustroute - 08"
+  document.getElementById('route-ctx-label').textContent = routeCtxName || name || 'Unnamed route';
+
+  const isFiltered = OV[net].filteredName === routeCtxName;
+  document.getElementById('route-ctx-only-label').textContent =
+    isFiltered ? 'Showing only this route' : 'Show only this route';
+  document.getElementById('route-ctx-only').style.fontWeight = isFiltered ? '600' : '';
+
+  routeCtxMenu.style.left = '0px'; routeCtxMenu.style.top = '0px';
+  routeCtxMenu.classList.add('open');
+  const mw = routeCtxMenu.offsetWidth, mh = routeCtxMenu.offsetHeight;
+  routeCtxMenu.style.left = Math.min(x, window.innerWidth  - mw - 8) + 'px';
+  routeCtxMenu.style.top  = Math.min(y, window.innerHeight - mh - 8) + 'px';
+}
+
+function closeRouteCtxMenu() {
+  routeCtxMenu.classList.remove('open');
+  routeCtxNet  = null;
+  routeCtxName = null;
+}
+
+function applyRouteFilter(net, filterName) {
+  const state = OV[net];
+  if (!state.layer?._relationPolys) { state.filteredName = filterName || null; updateShowAllBadge(); return; }
+  const rp = state.layer._relationPolys;
+  Object.entries(rp).forEach(([id, { name, polys }]) => {
+    const visible = !filterName || baseRouteName(name) === filterName;
+    polys.forEach(p => {
+      p.setStyle({ opacity: visible ? NET_CFG[net].opacity : 0, interactive: visible });
+      if (visible) {
+        // Restore tooltip if it was stored
+        if (p._tooltipContent && !p.getTooltip()) {
+          p.bindTooltip(p._tooltipContent, { permanent: false, sticky: true, direction: 'top', offset: [0, -6], className: 'route-label' });
+        }
+      } else {
+        // Store tooltip content then remove it so it can't fire while hidden
+        if (p.getTooltip()) {
+          p._tooltipContent = p.getTooltip().getContent();
+          p.unbindTooltip();
+        }
+      }
+    });
+  });
+  state.filteredName = filterName || null;
+  updateShowAllBadge();
+}
+
+function updateShowAllBadge() {
+  const anyFiltered = Object.keys(NET_CFG).some(k => OV[k].filteredName);
+  document.getElementById('show-all-badge').classList.toggle('visible', anyFiltered);
+}
+
+document.getElementById('show-all-badge').addEventListener('click', () => {
+  Object.keys(NET_CFG).forEach(k => applyRouteFilter(k, null));
+});
+
+document.getElementById('route-ctx-only').addEventListener('click', () => {
+  if (!routeCtxNet || !routeCtxName) return;
+  const alreadyFiltered = OV[routeCtxNet].filteredName === routeCtxName;
+  applyRouteFilter(routeCtxNet, alreadyFiltered ? null : routeCtxName);
+  closeRouteCtxMenu();
+});
+
+document.getElementById('route-ctx-all').addEventListener('click', () => {
+  if (!routeCtxNet) return;
+  applyRouteFilter(routeCtxNet, null);
+  closeRouteCtxMenu();
+});
+
+document.addEventListener('click', e => {
+  if (!routeCtxMenu.contains(e.target)) closeRouteCtxMenu();
+});
 </script>
 
 </body>
