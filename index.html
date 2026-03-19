@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -12,9 +12,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-  /* ── LIGHT THEME (default) ── */
-  :root,
-  [data-theme="light"] {
+  /* ── Theme variables ── */
+  :root {
     --bg:          #f0f2f7;
     --surface:     #ffffff;
     --surface2:    #f7f8fc;
@@ -34,26 +33,6 @@
     --syn-comment: #94a3b8;
     --mono: 'IBM Plex Mono', monospace;
     --sans: 'Space Grotesk', sans-serif;
-  }
-  /* ── DARK THEME ── */
-  [data-theme="dark"] {
-    --bg:          #0f1117;
-    --surface:     #181c27;
-    --surface2:    #1e2333;
-    --border:      #2a3050;
-    --accent:      #4ade80;
-    --accent2:     #22d3ee;
-    --accent-dim:  rgba(74,222,128,0.12);
-    --text:        #e2e8f0;
-    --text-dim:    #7c8db0;
-    --danger:      #f87171;
-    --scrollbar:   #2a3050;
-    --dl-text:     #0a1a10;
-    --hint-bg:     rgba(15,17,23,0.88);
-    --syn-tag:     #7dd3fc;
-    --syn-attr:    #fbbf24;
-    --syn-val:     #86efac;
-    --syn-comment: #4b5563;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -167,7 +146,6 @@
     user-select: none;
   }
   .snap-toggle.active { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
-  [data-theme="dark"] .snap-toggle.active { background: rgba(34,211,238,0.08); }
 
   .switch {
     width: 28px; height: 16px;
@@ -203,7 +181,6 @@
     border-radius: 6px;
     white-space: nowrap;
   }
-  [data-theme="dark"] .split-badge { color: #ff00cc; }
   .split-badge.visible { display: flex; }
 
   .routing-badge {
@@ -246,18 +223,6 @@
   }
   .routed-by-badge.visible { display: flex; }
 
-  .theme-btn {
-    width: 34px; height: 34px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 16px;
-    transition: all 0.2s;
-    flex-shrink: 0;
-  }
-  .theme-btn:hover { border-color: var(--accent); background: var(--accent-dim); }
 
   .main { display: flex; flex: 1; overflow: hidden; }
 
@@ -479,7 +444,6 @@
   }
   .waypoint-item:hover { border-color: var(--accent); }
   .waypoint-item.selected { border-color: var(--accent2); background: rgba(8,145,178,0.06); }
-  [data-theme="dark"] .waypoint-item.selected { background: rgba(34,211,238,0.06); }
 
   .segment-divider {
     font-family: var(--mono); font-size: 9px; letter-spacing: 0.1em;
@@ -488,7 +452,6 @@
     border-top: 1px dashed rgba(204,0,170,0.35);
     display: flex; align-items: center; gap: 6px;
   }
-  [data-theme="dark"] .segment-divider { color: #ff00cc; border-top-color: rgba(255,0,204,0.35); }
 
   .wp-index {
     width: 22px; height: 22px;
@@ -516,8 +479,6 @@
   .wp-btn:hover        { border-color: var(--danger);  color: var(--danger);  background: rgba(220,38,38,0.1); }
   .wp-btn.up:hover,
   .wp-btn.down:hover   { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.1); }
-  [data-theme="dark"] .wp-btn.up:hover,
-  [data-theme="dark"] .wp-btn.down:hover { background: rgba(34,211,238,0.1); }
 
   .wp-drag {
     display: flex;
@@ -556,7 +517,6 @@
     color: var(--accent); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
     cursor: pointer; text-align: center; transition: all 0.2s; flex-shrink: 0;
   }
-  [data-theme="dark"] .add-btn { border-color: rgba(74,222,128,0.4); }
   .add-btn:hover { background: rgba(22,163,74,0.2); }
 
   #route-name {
@@ -598,7 +558,6 @@
   }
   .grey-btn:hover { border-color: var(--accent); background: var(--accent-dim); opacity: 1; }
   .grey-btn.active { border-color: var(--accent2); background: rgba(8,145,178,0.1); opacity: 1; }
-  [data-theme="dark"] .grey-btn.active { background: rgba(34,211,238,0.1); }
 
   .map-hint {
     position: absolute;
@@ -665,7 +624,6 @@
     color: var(--text-dim); cursor: pointer; white-space: nowrap; transition: all 0.15s;
   }
   .preview-tab.active { color: #cc00aa; border-bottom-color: #cc00aa; }
-  [data-theme="dark"] .preview-tab.active { color: #ff00cc; border-bottom-color: #ff00cc; }
 
   .preview-body { flex: 1; overflow-y: auto; padding: 12px; }
   .preview-body::-webkit-scrollbar { width: 4px; }
@@ -692,9 +650,6 @@
   .custom-marker.last {
     border-color: #dc2626 !important; background: #fff !important; color: #dc2626 !important;
   }
-  [data-theme="dark"] .custom-marker         { background: #fff; }
-  [data-theme="dark"] .custom-marker.first   { border-color: #4ade80 !important; color: #4ade80 !important; }
-  [data-theme="dark"] .custom-marker.last    { border-color: #f87171 !important; color: #f87171 !important; }
 
   /* ── overlay route labels ── */
   .route-label {
@@ -716,7 +671,6 @@
     pointer-events: none;
     line-height: 1.4;
   }
-  [data-theme="dark"] .route-label { background: rgba(24,28,39,0.95); border-color: #2a3050; color: #e2e8f0; }
   .route-label-icon { background: none !important; border: none !important; width: auto !important; height: auto !important; }
 
   /* ── Save / load routes ── */
@@ -784,7 +738,6 @@
     user-select: none;
   }
   .gpx-upload-label:hover { background: rgba(22,163,74,0.18); }
-  [data-theme="dark"] .gpx-upload-label:hover { background: rgba(74,222,128,0.18); }
 
   .gpx-file-row {
     display: flex;
@@ -889,6 +842,12 @@
     header { padding: 0 12px; }
   }
 
+  /* Below ~500px (iPhone): hide logo text, keep just the icon */
+  @media (max-width: 500px) {
+    .logo-text { display: none; }
+    .header-controls { gap: 5px; }
+  }
+
   /* Default: .short spans hidden, .full spans visible */
   .short { display: none; }
   .full  { display: inline; }
@@ -913,7 +872,7 @@
     <div class="toggle-group" id="map-toggle">
       <button class="toggle-btn" data-map="cyclosm">CyclOSM</button>
       <button class="toggle-btn" data-map="osm"><span class="full">OpenStreetMap</span><span class="short">OSM</span></button>
-      <button class="toggle-btn active" data-map="voyager">Voyager</button>
+      <button class="toggle-btn active" data-map="voyager">Alidade</button>
     </div>
     <button class="grey-btn" id="grey-btn" title="Toggle greyscale map">◑</button>
     <div class="snap-toggle" id="snap-toggle">
@@ -921,7 +880,6 @@
       <span class="snap-label"><span class="full">SNAP TO PATH</span><span class="short">SNAP</span></span>
     </div>
     <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
-    <button class="theme-btn" id="theme-btn" title="Toggle light / dark theme">☀️</button>
   </div>
 </header>
 
@@ -936,12 +894,12 @@
 
     <div class="sidebar-section">
       <h3 style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-        Save &amp; Load
+        Download &amp; Upload
         <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar">◀</button>
       </h3>
       <div class="save-row">
-        <button class="save-btn" id="export-route-btn">⬇ Export GPX</button>
-        <label class="save-btn" for="import-route-input" style="cursor:pointer;">⬆ Import GPX</label>
+        <button class="save-btn" id="export-route-btn">⬇ Download GPX</button>
+        <label class="save-btn" for="import-route-input" style="cursor:pointer;">⬆ Upload GPX</label>
         <input type="file" id="import-route-input" accept=".gpx" style="display:none">
       </div>
       <div class="autosave-notice">
@@ -1052,7 +1010,6 @@ let waypoints     = [];
 let routeLayer    = null;
 let snapEnabled   = false;
 let selectedIndex = -1;
-let isDark        = false;
 let activeTab     = 0;
 
 const OV = {};
@@ -1063,15 +1020,15 @@ Object.keys(NET_CFG).forEach(k => {
 /* ── Map ── */
 const cyclOSM = L.tileLayer(
   'https://{s}.tile-cyclosm.openstreetmap.fr/cyclosm/{z}/{x}/{y}.png',
-  { maxZoom: 20, attribution: '&copy; <a href="https://www.cyclosm.org">CyclOSM</a> &amp; OpenStreetMap contributors' }
+  { maxZoom: 20, attribution: '&copy; <a href="https://www.cyclosm.org" target="_blank">CyclOSM</a> | Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors' }
 );
 const osmStd = L.tileLayer(
   'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-  { maxZoom: 19, attribution: '&copy; OpenStreetMap contributors' }
+  { maxZoom: 19, attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors' }
 );
 const tonerLite = L.tileLayer(
-  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
-  { maxZoom: 20, subdomains: 'abcd', attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>' }
+  'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
+  { maxZoom: 20, attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors' }
 );
 
 const tiles = { cyclosm: cyclOSM, osm: osmStd, voyager: tonerLite };
@@ -1102,13 +1059,6 @@ map.on('moveend', () => {
       refreshOverlay(k);
     }
   });
-});
-
-/* ── Theme ── */
-document.getElementById('theme-btn').addEventListener('click', () => {
-  isDark = !isDark;
-  document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-  document.getElementById('theme-btn').textContent = isDark ? '🌙' : '☀️';
 });
 
 /* ── GPX Preview panel toggle ── */
@@ -2248,6 +2198,10 @@ document.getElementById('export-route-btn').addEventListener('click', exportRout
 updateGpxPreview();
 // Preview panel starts collapsed — let Leaflet fill the extra space immediately
 setTimeout(() => map.invalidateSize(), 0);
+// Collapse sidebar by default on small screens (iPhone etc.)
+if (window.innerWidth <= 500) {
+  document.getElementById('sidebar').classList.add('collapsed');
+}
 </script>
 </body>
 </html>
