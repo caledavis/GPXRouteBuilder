@@ -2353,7 +2353,9 @@ function renderSidebar() {
     const isHouse = wp.sym === 'Residence';
     let symClass, symSvg;
     if (isHouse) {
-      symClass = 'house'; symSvg = svgHouse('#ca8a04');
+      if (i === 0)            { symClass = 'flag-first'; symSvg = svgHouse('#16a34a'); }
+      else if (i === count-1) { symClass = 'flag-last';  symSvg = svgHouse('#dc2626'); }
+      else                    { symClass = 'house';       symSvg = svgHouse('#ca8a04'); }
     } else if (i === 0) {
       symClass = 'flag-first'; symSvg = svgFlag('#16a34a');
     } else if (i === count - 1) {
