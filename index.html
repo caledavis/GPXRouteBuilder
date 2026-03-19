@@ -374,6 +374,7 @@
 
   .overlay-note {
     margin-top: 7px;
+    margin-bottom: 7px;
     font-family: var(--mono);
     font-size: 9.5px;
     color: var(--text-dim);
@@ -642,8 +643,8 @@
     top: 12px;
     left: 50%; transform: translateX(-50%);
     background: var(--surface);
-    border: 1px solid #ca8a04;
-    color: #854d0e;
+    border: 1px solid var(--accent);
+    color: var(--accent);
     padding: 6px 14px;
     border-radius: 20px;
     font-family: var(--mono);
@@ -659,7 +660,7 @@
     gap: 7px;
   }
   .show-all-badge.visible { display: flex; }
-  .show-all-badge:hover { background: rgba(202,138,4,0.10); }
+  .show-all-badge:hover { background: var(--accent-dim); }
 
   /* ── PREVIEW PANEL ── */
   .preview-panel {
@@ -1282,6 +1283,7 @@
 
     <div class="sidebar-section">
       <h3>Cycling Route Overlays</h3>
+      <div class="overlay-note">Right-click a route on the map to isolate it.</div>
       <div class="overlay-rows" id="overlay-rows">
         <div class="overlay-row" id="ov-icn" style="--ov-color:#e8000d" title="International cycling networks e.g. EuroVelo">
           <div class="overlay-pip"></div>
