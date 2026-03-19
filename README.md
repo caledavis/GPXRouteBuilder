@@ -2,6 +2,7 @@
 Use the tool here: https://caledavis.github.io/GPXRouteBuilder/
 
 Plan a cycling trip with turn-by-turn navigation on your GPS.
+
 This tool was designed for personal use to fill a gap in the tools which currently exist for planning cycling trips.
 ## What does this do?
 There are a lot of online route planners that produce GPX _tracks_. But there are no free ones which allow you to create GPX _routes_. This one does.
@@ -27,3 +28,5 @@ Navigating along _tracks_, however, is not good for navigation because:
 5. A greyscale toggle in case the map looks a bit too confusing.
 ## How was it made?
 This tool was vibe coded with Claude using Sonnet 4.6.
+
+Because of that, it is free and open-source. I have no programming skills to speak of, and the only way I was able to put this together was by using an AI model which was (in all likellihood) trained on stuff made by other people with infinitely more skills than me. 
