@@ -9,6 +9,7 @@
 <title>GPX Route Builder</title>
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -519,6 +520,48 @@
   }
   .add-btn:hover { background: rgba(22,163,74,0.2); }
 
+  .address-search-row {
+    display: flex; gap: 6px; align-items: center;
+    padding: 8px 14px 4px;
+    flex-shrink: 0;
+  }
+  .address-input {
+    flex: 1; min-width: 0;
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); font-family: var(--sans); font-size: 12px; padding: 6px 9px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .address-input:focus { border-color: var(--accent2); }
+  .address-input::placeholder { color: var(--text-dim); opacity: 0.7; }
+  .address-search-btn {
+    width: 28px; height: 28px; flex-shrink: 0;
+    background: var(--accent); color: var(--dl-text);
+    border: none; border-radius: 6px; font-size: 16px; line-height: 1;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: opacity 0.2s;
+  }
+  .address-search-btn:hover { opacity: 0.85; }
+  .address-results {
+    margin: 0 14px 4px;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    display: none;
+  }
+  .address-results.visible { display: block; }
+  .address-result-item {
+    padding: 7px 10px;
+    font-family: var(--sans); font-size: 11px; color: var(--text);
+    background: var(--surface); cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.15s;
+    line-height: 1.4;
+  }
+  .address-result-item:last-child { border-bottom: none; }
+  .address-result-item:hover { background: var(--surface2); }
+  .address-result-item .result-main { font-weight: 500; }
+  .address-result-item .result-sub { color: var(--text-dim); font-size: 10px; margin-top: 1px; }
+
   #route-name {
     width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 6px;
     color: var(--text); font-family: var(--sans); font-size: 13px; padding: 7px 10px;
@@ -542,7 +585,8 @@
   #map .leaflet-marker-icon { cursor: grab !important; }
   #map .leaflet-marker-icon:active { cursor: grabbing !important; }
   /* Greyscale applies only to the tile layer, not overlays or markers */
-  #map.greyscale .leaflet-tile-pane { filter: grayscale(1); }
+  #map.greyscale .leaflet-tile-pane,
+  #map.greyscale .leaflet-maplibre-gl { filter: grayscale(1); }
 
   .grey-btn {
     width: 34px; height: 34px;
@@ -870,9 +914,9 @@
     <div class="routing-badge" id="routing-badge"><div class="routing-spinner"></div>Routing…</div>
     <div class="routed-by-badge" id="routed-by-badge"></div>
     <div class="toggle-group" id="map-toggle">
+      <button class="toggle-btn active" data-map="bright">Bright</button>
       <button class="toggle-btn" data-map="cyclosm">CyclOSM</button>
       <button class="toggle-btn" data-map="osm"><span class="full">OpenStreetMap</span><span class="short">OSM</span></button>
-      <button class="toggle-btn active" data-map="voyager">Alidade</button>
     </div>
     <button class="grey-btn" id="grey-btn" title="Toggle greyscale map">◑</button>
     <div class="snap-toggle" id="snap-toggle">
@@ -973,6 +1017,11 @@
       <div class="waypoints-list" id="waypoints-list">
         <div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>
       </div>
+      <div class="address-search-row">
+        <input type="text" id="address-input" class="address-input" placeholder="Search address to add waypoint…" autocomplete="off" spellcheck="false">
+        <button class="address-search-btn" id="address-search-btn" title="Add waypoint at address">＋</button>
+      </div>
+      <div class="address-results" id="address-results"></div>
       <button class="add-btn" id="clear-btn">✕ Clear All Points</button>
     </div>
 
@@ -995,6 +1044,8 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
+<script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script>
 <script>
 const MAX_PER_FILE = 40;
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
@@ -1026,24 +1077,180 @@ const osmStd = L.tileLayer(
   'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   { maxZoom: 19, attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors' }
 );
-const tonerLite = L.tileLayer(
-  'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}{r}.png',
-  { maxZoom: 20, attribution: '&copy; <a href="https://stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors' }
-);
 
-const tiles = { cyclosm: cyclOSM, osm: osmStd, voyager: tonerLite };
+const OFM_ATTRIBUTION = '<a href="https://openfreemap.org" target="_blank">OpenFreeMap</a> &copy; <a href="https://www.openmaptiles.org/" target="_blank">OpenMapTiles</a> Data from <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a>';
 
-const map = L.map('map', { center: [52.08, 4.31], zoom: 11, layers: [tonerLite] });
-let currentTile = tonerLite;
+// Recursively scale all numeric leaf values in a MapLibre text-size expression
+function scaleTextSize(expr, factor) {
+  if (typeof expr === 'number') return expr * factor;
+  if (Array.isArray(expr)) {
+    return expr.map((item, i) => {
+      if (typeof item === 'number') {
+        const op = Array.isArray(expr) ? expr[0] : null;
+        if ((op === 'interpolate' || op === 'step') && i === 1) return item;
+        if ((op === 'interpolate' || op === 'step') && i === 2) return item;
+        return item * factor;
+      }
+      if (Array.isArray(item)) return scaleTextSize(item, factor);
+      return item;
+    });
+  }
+  return expr;
+}
+
+async function makeBrightLayer() {
+  const res   = await fetch('https://tiles.openfreemap.org/styles/bright');
+  const style = await res.json();
+
+  // Point to the openmaptiles font server which hosts Metropolis
+  style.glyphs = 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf';
+
+  // Map Noto Sans variants to exact Metropolis names hosted on openmaptiles
+  const fontMap = {
+    'Noto Sans Bold Italic': 'Metropolis Bold Italic',
+    'Noto Sans Bold':        'Metropolis Bold',
+    'Noto Sans Italic':      'Metropolis Medium Italic',
+    'Noto Sans Regular':     'Metropolis Regular',
+  };
+
+  style.layers.forEach(layer => {
+    const fonts = layer.layout?.['text-font'];
+    if (Array.isArray(fonts)) {
+      layer.layout['text-font'] = fonts.map(f => fontMap[f] || f);
+    }
+
+    const src = layer['source-layer'] || '';
+    const id  = (layer.id || '').toLowerCase();
+
+    // Capitalise city/town/village names, make bold, and soften text colour
+    if (src === 'place' && (id.includes('city') || id.includes('town') || id.includes('village') || id.includes('place'))) {
+      layer.layout = layer.layout || {};
+      layer.layout['text-transform'] = 'uppercase';
+      layer.layout['text-letter-spacing'] = 0.15;
+      if (layer.layout['text-font']) {
+        layer.layout['text-font'] = layer.layout['text-font'].map(f =>
+          f.replace('Regular', 'Bold').replace('Medium Italic', 'Bold Italic')
+        );
+      }
+      // Soften the text colour to match the map's warm palette
+      layer.paint = layer.paint || {};
+      layer.paint['text-color'] = '#5a4e42';
+      layer.paint['text-halo-color'] = 'rgba(248,244,240,0.85)';
+    }
+
+    // Apply street-style rendering to waterway names (reduce size, halo, translate, no italic, uppercase)
+    if ((src === 'water_name' || src === 'waterway') && layer.type === 'symbol') {
+      const size = layer.layout?.['text-size'];
+      if (size !== undefined) {
+        layer.layout['text-size'] = scaleTextSize(size, 0.6);
+      }
+      layer.layout['text-transform'] = 'uppercase';
+      layer.layout['text-letter-spacing'] = 0.1;
+      if (layer.layout?.['text-font']) {
+        layer.layout['text-font'] = layer.layout['text-font'].map(f =>
+          f.replace(' Italic', '').replace('Medium Italic', 'Regular').replace('Bold Italic', 'Bold')
+        );
+      }
+      layer.paint = layer.paint || {};
+      layer.paint['text-color'] = 'rgba(100, 140, 180, 0.7)';
+      layer.paint['text-halo-color'] = 'rgba(255,255,255,0.6)';
+      layer.paint['text-halo-width'] = 1;
+      layer.paint['text-translate'] = [0, 2];
+      layer.paint['text-translate-anchor'] = 'map';
+    }
+    if (id.includes('casing') && layer.type === 'line') {
+      layer.paint = layer.paint || {};
+      const op = layer.paint['line-opacity'];
+      layer.paint['line-opacity'] = typeof op === 'number' ? op * 0.2 : 0.2;
+      // Slightly more orange than before but still muted
+      const col = layer.paint['line-color'];
+      if (typeof col === 'string' && (col.includes('e9ac') || col.includes('cfcd') || col === '#e9ac77')) {
+        layer.paint['line-color'] = '#d4a876';
+      }
+    }
+
+    // Differentiate cycle-accessible paths from pedestrian-only ones
+    if (src === 'transportation' && layer.type === 'line') {
+      const filterStr = JSON.stringify(layer.filter || '').toLowerCase();
+      const isPath = id.includes('path') || id.includes('pedestrian') ||
+                     filterStr.includes('"path"') || filterStr.includes('"pedestrian"');
+      if (isPath) {
+        layer.paint = layer.paint || {};
+        delete layer.paint['line-dasharray'];
+        layer.paint['line-color'] = 'rgba(180, 155, 130, 0.25)';
+        layer.paint['line-opacity'] = 1;
+      }
+    }
+    // Apply a modest 15% size reduction on all labels.
+    // Use text-line-height < 1.0 to pull the visual centre of Metropolis down
+    // onto the road line — this corrects for Metropolis's taller ascenders.
+    if (layer.type === 'symbol') {
+      const size = layer.layout?.['text-size'];
+      if (size !== undefined) {
+        layer.layout['text-size'] = scaleTextSize(size, 0.85);
+      }
+      if (layer.layout?.['symbol-placement'] === 'line' || layer.layout?.['symbol-placement'] === 'line-center') {
+        delete layer.layout['text-line-height'];
+        layer.paint = layer.paint || {};
+        layer.paint['text-translate'] = [0, 2];
+        layer.paint['text-translate-anchor'] = 'map';
+        layer.paint['text-halo-color'] = 'rgba(255,255,255,0.85)';
+        layer.paint['text-halo-width'] = 1.5;
+      }
+    }
+  });
+
+  // Remove buildings, POIs and neighbourhood/district labels
+  style.layers = style.layers.filter(l => {
+    const id  = (l.id  || '').toLowerCase();
+    const src = (l['source-layer'] || '').toLowerCase();
+    if (src === 'building' || id.includes('building')) return false;
+    if (src === 'poi'      || id.includes('poi'))      return false;
+    // Remove any place symbol layer that uses an italic font — these are neighbourhoods
+    if (src === 'place' && l.type === 'symbol') {
+      const fonts = JSON.stringify(l.layout?.['text-font'] || '').toLowerCase();
+      if (fonts.includes('italic')) return false;
+      const filter = JSON.stringify(l.filter || '').toLowerCase();
+      if (filter.includes('suburb')    || filter.includes('neighbourhood') ||
+          filter.includes('quarter')   || filter.includes('subplace')      ||
+          filter.includes('district')  || filter.includes('allotments')    ||
+          id.includes('suburb')        || id.includes('neighbourhood')     ||
+          id.includes('quarter')       || id.includes('subplace')) return false;
+    }
+    return true;
+  });
+
+  return L.maplibreGL({ style, attribution: OFM_ATTRIBUTION });
+}
+
+const rasterTiles = { cyclosm: cyclOSM, osm: osmStd };
+
+const map = L.map('map', { center: [52.08, 4.31], zoom: 11 });
+
+// Start with Bright (GL layer) as default
+let currentTile = null;
+let currentGL   = null;
+makeBrightLayer().then(layer => { currentGL = layer; currentGL.addTo(map); });
 
 document.querySelectorAll('#map-toggle .toggle-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('#map-toggle .toggle-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
-    map.removeLayer(currentTile);
-    currentTile = tiles[btn.dataset.map] || cyclOSM;
-    map.addLayer(currentTile);
-    currentTile.bringToBack();
+    const key = btn.dataset.map;
+    if (key === 'bright') {
+      if (currentTile) { map.removeLayer(currentTile); currentTile = null; }
+      if (!currentGL) {
+        makeBrightLayer().then(layer => { currentGL = layer; currentGL.addTo(map); });
+      } else {
+        currentGL.addTo(map);
+      }
+    } else {
+      if (currentGL) { map.removeLayer(currentGL); currentGL = null; }
+      if (currentTile) map.removeLayer(currentTile);
+      currentTile = rasterTiles[key] || osmStd;
+      currentTile.addTo(map);
+      currentTile.bringToBack();
+    }
   });
 });
 
@@ -2176,6 +2383,90 @@ document.getElementById('import-route-input').addEventListener('change', functio
 
 /* ── Wire up buttons ── */
 document.getElementById('export-route-btn').addEventListener('click', exportRoute);
+
+/* ── Address search (Nominatim) ── */
+(function initAddressSearch() {
+  const input     = document.getElementById('address-input');
+  const btn       = document.getElementById('address-search-btn');
+  const resultsEl = document.getElementById('address-results');
+  let debounceTimer = null;
+
+  function formatAddress(r) {
+    const a = r.address || {};
+    const num  = a.house_number || '';
+    const road = a.road || a.pedestrian || a.path || a.footway || a.cycleway || '';
+    if (!road) return r.display_name.split(',')[0].trim();
+    const cc = (a.country_code || '').toUpperCase();
+    const numFirst = ['US','CA','AU','GB','IE','NZ','PH','SG','MY','HK','IN','PK','ZA'].includes(cc);
+    if (!num) return road;
+    return numFirst ? `${num} ${road}` : `${road} ${num}`;
+  }
+
+  function showResults(items) {
+    if (!items.length) {
+      resultsEl.classList.remove('visible');
+      return;
+    }
+    resultsEl.innerHTML = items.slice(0, 5).map((r, i) =>
+      `<div class="address-result-item" data-idx="${i}">
+        <div class="result-main">${escapeHtml(formatAddress(r))}</div>
+        <div class="result-sub">${escapeHtml(r.display_name.split(',').slice(1).join(',').trim())}</div>
+      </div>`
+    ).join('');
+    resultsEl.classList.add('visible');
+    resultsEl._items = items;
+    resultsEl.querySelectorAll('.address-result-item').forEach(el => {
+      el.addEventListener('click', () => {
+        const r = items[+el.dataset.idx];
+        addWaypointFromResult(r);
+      });
+    });
+  }
+
+  function addWaypointFromResult(r) {
+    const lat = parseFloat(r.lat);
+    const lng = parseFloat(r.lon);
+    const name = formatAddress(r);
+    addWaypoint(lat, lng, name);
+    const list = document.getElementById('waypoints-list');
+    setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
+    input.value = '';
+    resultsEl.classList.remove('visible');
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 15), { duration: 0.8 });
+  }
+
+  async function search(query) {
+    if (!query.trim()) { resultsEl.classList.remove('visible'); return; }
+    try {
+      const b = map.getBounds();
+      const viewbox = `${b.getWest()},${b.getNorth()},${b.getEast()},${b.getSouth()}`;
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1&viewbox=${viewbox}&bounded=0`,
+        { headers: { 'Accept-Language': navigator.language || 'en' } }
+      );
+      const data = await res.json();
+      showResults(data);
+    } catch (_) { resultsEl.classList.remove('visible'); }
+  }
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => search(input.value), 400);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { clearTimeout(debounceTimer); search(input.value); }
+    if (e.key === 'Escape') { resultsEl.classList.remove('visible'); }
+  });
+
+  btn.addEventListener('click', () => { clearTimeout(debounceTimer); search(input.value); });
+
+  document.addEventListener('click', e => {
+    if (!input.contains(e.target) && !btn.contains(e.target) && !resultsEl.contains(e.target)) {
+      resultsEl.classList.remove('visible');
+    }
+  });
+})();
 
 /* ── Restore auto-save on page load ── */
 (function restoreAutosave() {
