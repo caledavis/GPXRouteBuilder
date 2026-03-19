@@ -517,6 +517,7 @@
     border-radius: 1px;
   }
   .waypoint-item.dragging { opacity: 0.35; }
+  .waypoint-item.wp-flip-transition { transition: transform 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
 
   /* Drop indicator — a full-height gap showing where the item will land */
   .wp-drop-indicator {
@@ -2693,11 +2694,37 @@ function renderSidebar() {
       if (reorderSrcIdx === null || !reorderClone) return;
       reorderClone.style.top = (e.clientY - 16) + 'px';
 
-      // Compute and show insertion point
-      let raw = getInsertAt(e.clientY);
-      // Adjust: if inserting after the src, account for it being removed
+      // Compute new insertion point
+      const raw = getInsertAt(e.clientY);
+      if (raw === dropInsertAt) return; // nothing changed — skip animation work
+
+      // ── FLIP: record positions BEFORE the DOM change ──
+      const items = [...list.querySelectorAll('.waypoint-item:not(.dragging)')];
+      const before = new Map();
+      items.forEach(el => { before.set(el, el.getBoundingClientRect().top); });
+
       dropInsertAt = raw;
       positionIndicator(dropInsertAt);
+
+      // ── FLIP: animate items from their old positions to new ones ──
+      items.forEach(el => {
+        const oldTop = before.get(el);
+        const newTop = el.getBoundingClientRect().top;
+        const delta  = oldTop - newTop;
+        if (Math.abs(delta) < 1) return; // no meaningful movement
+        // Remove any ongoing transition, snap to old position, then animate to new
+        el.classList.remove('wp-flip-transition');
+        el.style.transform = `translateY(${delta}px)`;
+        // Force reflow so the browser registers the starting transform
+        el.getBoundingClientRect();
+        el.classList.add('wp-flip-transition');
+        el.style.transform = '';
+        // Clean up transition class after it completes
+        el.addEventListener('transitionend', () => {
+          el.classList.remove('wp-flip-transition');
+          el.style.transform = '';
+        }, { once: true });
+      });
     });
 
     handle.addEventListener('pointerup', e => {
