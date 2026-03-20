@@ -773,11 +773,9 @@
     font-size: 11px;
     font-weight: 600;
     color: #1e293b;
-    white-space: nowrap;
+    white-space: normal;
     width: max-content;
     max-width: 260px;
-    overflow: hidden;
-    text-overflow: ellipsis;
     box-shadow: 0 1px 5px rgba(0,0,0,0.18);
     pointer-events: none;
     line-height: 1.4;
@@ -1841,7 +1839,11 @@ function applyNamesVisibility() {
         const name = sublayer._visPoly?._tooltipContent;
         if (!name) return;
         if (showRouteNames && !sublayer.getTooltip()) {
-          sublayer.bindTooltip(name, {
+          const { line1, line2 } = labelLines(name, sublayer._visPoly?._tooltipNet === 'icn' ? undefined : null);
+          const tooltipHtml = line2
+            ? `<span>${escapeHtml(line1)}</span><br><span style="font-weight:400;opacity:0.75">${escapeHtml(line2)}</span>`
+            : escapeHtml(line1);
+          sublayer.bindTooltip(tooltipHtml, {
             permanent: false, sticky: true,
             direction: 'top', offset: [0, -6],
             className: 'route-label',
@@ -1916,7 +1918,15 @@ async function refreshOverlay(net) {
   relation["type"="route"]["network"="${net}"](${bbox});
 )->.routes;
 .routes out body;
-way(r.routes);
+rel(r.routes)->.subroutes;
+.subroutes out body;
+rel(r.subroutes)->.subsubroutes;
+.subsubroutes out body;
+(
+  way(r.routes);
+  way(r.subroutes);
+  way(r.subsubroutes);
+);
 out geom qt;`;
 
     const resp = await fetch(OVERPASS_URL, {
@@ -1987,6 +1997,28 @@ function baseRouteName(name) {
   return name.replace(/\s*[-–]\s*.+$/, '').trim();
 }
 
+// Returns { line1, line2 } for label display.
+// line2 is the second dash-separated segment when it looks like a descriptive
+// name (≥ 3 chars, not purely a number/short code), otherwise null.
+// e.g. "EUROVELO 12 - NORTH SEA CYCLE ROUTE - PART NL" → { line1: "EUROVELO 12", line2: "NORTH SEA CYCLE ROUTE" }
+//      "LF Kustroute - 08 - Noordwijk - Oost"          → { line1: "LF Kustroute", line2: null }
+// subtitleOverride lets callers supply a parent-derived subtitle that takes
+// precedence over whatever the name string itself would produce as line2.
+// subtitleOverride behaviour:
+//   undefined  → use the heuristic (split on first dash, filter out bare numbers)
+//   null       → suppress heuristic entirely; always single-line
+//   string     → use that string as line2 unconditionally
+function labelLines(name, subtitleOverride) {
+  if (!name) return { line1: name, line2: null };
+  const parts = name.split(/\s+[-–]\s+/);
+  const line1  = parts[0].trim();
+  if (subtitleOverride === null) return { line1, line2: null };
+  if (subtitleOverride)          return { line1, line2: subtitleOverride };
+  const second = parts[1]?.trim() || null;
+  const line2  = second && !/^\d+([a-z]?)$/i.test(second) && second.length >= 3 ? second : null;
+  return { line1, line2 };
+}
+
 function buildLayer(net, data) {
   const cfg       = NET_CFG[net];
   const group = L.layerGroup();
@@ -1999,8 +2031,70 @@ function buildLayer(net, data) {
     }
   });
 
-  const namesOn  = cfg.showLabels && showRouteNames;
-  const labelled = new Set();
+  // EuroVelo routes have inconsistent sub-relation naming in OSM — some carry
+  // the full route name at every level, others drop it at the deepest level
+  // (e.g. "EuroVelo 2 - Nederland part 1" instead of "Capitals Route").
+  // The ref tag (EV1…EV17) is reliably set at every nesting level, so we use
+  // a hardcoded lookup table as the authoritative subtitle source, then fall
+  // back to BFS propagation from the name tag for any unknown refs.
+  const EV_SUBTITLE = {
+    EV1:  'Atlantic Coast Route',
+    EV2:  'Capitals Route',
+    EV3:  "Pilgrims' Route",
+    EV4:  'Central Europe Route',
+    EV5:  'Via Romea Francigena',
+    EV6:  'Atlantic – Black Sea',
+    EV7:  'Sun Route',
+    EV8:  'Mediterranean Route',
+    EV9:  'Amber Route',
+    EV10: 'Baltic Sea Cycle Route',
+    EV11: 'East Europe Route',
+    EV12: 'North Sea Cycle Route',
+    EV13: 'Iron Curtain Trail',
+    EV15: 'Rhine Cycle Route',
+    EV17: 'Rhône Cycle Route',
+    EV19: 'Meuse Cycle Route',
+  };
+
+  const subRelSubtitle = {};
+  const childrenOf = {};
+
+  (data.elements || []).forEach(el => {
+    if (el.type !== 'relation') return;
+    // Prefer the authoritative lookup table keyed on the ref tag
+    const ref = el.tags?.ref || null;
+    if (ref && EV_SUBTITLE[ref]) {
+      subRelSubtitle[el.id] = EV_SUBTITLE[ref];
+    } else {
+      // Fall back to parsing parts[1] from the name for non-EuroVelo ICN routes
+      const name = el.tags?.name || null;
+      if (name) {
+        const { line2 } = labelLines(name);
+        if (line2) subRelSubtitle[el.id] = line2;
+      }
+    }
+    // Build parent→children adjacency for BFS propagation
+    (el.members || []).forEach(m => {
+      if (m.type !== 'relation') return;
+      (childrenOf[el.id] = childrenOf[el.id] || []).push(m.ref);
+    });
+  });
+
+  // BFS top-down: propagate subtitle to children that have none of their own
+  const bfsQueue = Object.keys(subRelSubtitle).map(Number);
+  const visited  = new Set(bfsQueue);
+  let bfsHead = 0;
+  while (bfsHead < bfsQueue.length) {
+    const parentId = bfsQueue[bfsHead++];
+    const subtitle = subRelSubtitle[parentId];
+    (childrenOf[parentId] || []).forEach(childId => {
+      if (!subRelSubtitle[childId]) subRelSubtitle[childId] = subtitle;
+      if (!visited.has(childId)) { visited.add(childId); bfsQueue.push(childId); }
+    });
+  }
+
+  const namesOn      = cfg.showLabels && showRouteNames;
+  const pendingLabels = [];         // { routeName, inheritedSubtitle, allCoords }
 
   // Track polylines per relation so we can show/hide by route
   // relationPolys[relationId] = { name, polys: [L.Polyline, ...] }
@@ -2015,6 +2109,9 @@ function buildLayer(net, data) {
     if (el.type !== 'relation' || !el.members) return;
     const relId     = el.id;
     const routeName = el.tags?.name || el.tags?.ref || null;
+    // If this is a sub-relation, override line2 with the parent's subtitle
+    // (e.g. "Capitals Route" instead of "Nederland part 1").
+    const inheritedSubtitle = subRelSubtitle[relId] || null;
     const allCoords = [];
     const polys     = [];
 
@@ -2039,7 +2136,11 @@ function buildLayer(net, data) {
         });
 
         if (routeName && showRouteNames) {
-          hit.bindTooltip(routeName, {
+          const { line1, line2 } = labelLines(routeName, net === 'icn' ? inheritedSubtitle : null);
+          const tooltipHtml = line2
+            ? `<span>${escapeHtml(line1)}</span><br><span style="font-weight:400;opacity:0.75">${escapeHtml(line2)}</span>`
+            : escapeHtml(line1);
+          hit.bindTooltip(tooltipHtml, {
             permanent: false, sticky: true,
             direction: 'top', offset: [0, -6],
             className: 'route-label',
@@ -2047,7 +2148,9 @@ function buildLayer(net, data) {
         }
 
         // Store tooltip content reference on visible poly too (for filter restore)
+        // Keep full routeName so applyNamesVisibility can rebuild the tooltip correctly.
         poly._tooltipContent = routeName || null;
+        poly._tooltipNet     = net;
 
         poly.addTo(group);
         hit.addTo(group);
@@ -2153,27 +2256,67 @@ function buildLayer(net, data) {
 
     if (polys.length) relationPolys[relId] = { name: routeName, polys };
 
-    if (cfg.showLabels && routeName && allCoords.length >= 2 && !labelled.has(routeName)) {
-      labelled.add(routeName);
-      const mid = allCoords[Math.floor(allCoords.length / 2)];
-      const lm = L.marker(mid, {
-        interactive: false,
-        icon: L.divIcon({
-          className: 'route-label-icon',
-          html: `<div class="route-label" style="border-left:3px solid ${cfg.color}">${escapeHtml(routeName)}</div>`,
-          iconSize: null, iconAnchor: [0, 10],
-        }),
-      });
-      lm._labelFor = routeName;
-      lm.addTo(group);
-      if (!namesOn) {
-        requestAnimationFrame(() => {
-          const el = lm.getElement?.();
-          if (el) el.style.display = 'none';
-        });
-      }
+    if (cfg.showLabels && routeName && allCoords.length >= 2) {
+      // Collect candidate coords for this route so we can place labels
+      // spaced out across the whole layer after all routes are processed.
+      pendingLabels.push({ routeName, inheritedSubtitle, allCoords });
     }
   });
+
+  // ── Spaced label placement ──
+  // Place at most one label per route per ~200 px of screen space.
+  // We defer to rAF so map.latLngToContainerPoint() is available.
+  // occupiedCells is a Set of "col,row" grid keys (cell = 200 px).
+  // Each route gets labels at candidate points spaced every ~25% of its
+  // length, but only if the cell is not already taken by another label.
+  if (cfg.showLabels && pendingLabels.length) {
+    requestAnimationFrame(() => {
+      const CELL = 200; // px — minimum separation between any two labels
+      const occupiedCells = new Set();
+
+      function cellKey(latlng) {
+        const pt = map.latLngToContainerPoint(latlng);
+        return `${Math.floor(pt.x / CELL)},${Math.floor(pt.y / CELL)}`;
+      }
+
+      function tryPlace(latlng, routeName, inheritedSubtitle) {
+        const key = cellKey(latlng);
+        if (occupiedCells.has(key)) return false;
+        occupiedCells.add(key);
+
+        const { line1, line2 } = labelLines(routeName, net === 'icn' ? inheritedSubtitle : null);
+        const inner = line2
+          ? `${escapeHtml(line1)}<br><span style="font-weight:400;opacity:0.75">${escapeHtml(line2)}</span>`
+          : escapeHtml(line1);
+        const lm = L.marker(latlng, {
+          interactive: false,
+          icon: L.divIcon({
+            className: 'route-label-icon',
+            html: `<div class="route-label" style="border-left:3px solid ${cfg.color}">${inner}</div>`,
+            iconSize: null, iconAnchor: [0, 10],
+          }),
+        });
+        lm._labelFor = routeName;
+        lm.addTo(group);
+        if (!namesOn) {
+          const el = lm.getElement?.();
+          if (el) el.style.display = 'none';
+        }
+        return true;
+      }
+
+      pendingLabels.forEach(({ routeName, inheritedSubtitle, allCoords }) => {
+        if (!allCoords.length) return;
+        // Try placing at 0%, 25%, 50%, 75% along the route.
+        // Stop after placing one label per route (keeps it tidy).
+        const steps = [0.5, 0.25, 0.75, 0, 1];
+        for (const t of steps) {
+          const idx = Math.min(Math.floor(t * allCoords.length), allCoords.length - 1);
+          if (tryPlace(allCoords[idx], routeName, inheritedSubtitle)) break;
+        }
+      });
+    });
+  }
 
   // Store relation polyline map on the group for later filtering
   group._relationPolys = relationPolys;
@@ -3686,7 +3829,11 @@ function applyRouteFilter(net, filterName) {
       if (visible) {
         // Restore tooltip on hit poly only if route names are currently on
         if (showRouteNames && p._tooltipContent && p._hitPoly && !p._hitPoly.getTooltip()) {
-          p._hitPoly.bindTooltip(p._tooltipContent, {
+          const { line1, line2 } = labelLines(p._tooltipContent, p._visPoly?._tooltipNet === 'icn' ? undefined : null);
+          const tooltipHtml = line2
+            ? `<span>${escapeHtml(line1)}</span><br><span style="font-weight:400;opacity:0.75">${escapeHtml(line2)}</span>`
+            : escapeHtml(line1);
+          p._hitPoly.bindTooltip(tooltipHtml, {
             permanent: false, sticky: true,
             direction: 'top', offset: [0, -6],
             className: 'route-label',
@@ -3700,6 +3847,17 @@ function applyRouteFilter(net, filterName) {
       }
     });
   });
+
+  // Show/hide permanent label markers to match the filter
+  if (state.layer && showRouteNames) {
+    state.layer.eachLayer(sublayer => {
+      if (sublayer._labelFor === undefined) return;
+      const labelVisible = !filterName || baseRouteName(sublayer._labelFor) === filterName;
+      const el = sublayer.getElement?.();
+      if (el) el.style.display = labelVisible ? '' : 'none';
+    });
+  }
+
   state.filteredName = filterName || null;
   updateShowAllBadge();
 }
