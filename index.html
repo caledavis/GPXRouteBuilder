@@ -1411,7 +1411,13 @@ let activeTab     = 0;
 
 const OV = {};
 Object.keys(NET_CFG).forEach(k => {
-  OV[k] = { enabled: false, loading: false, layer: null, allAdded: [], fetchedBbox: null, filteredName: null };
+  OV[k] = {
+    enabled: false, loading: false,
+    layer: null, allAdded: [],
+    fetchedBbox: null, filteredName: null,
+    // Cache: survives toggle-off so re-enabling skips the Overpass round-trip
+    cachedLayer: null, cachedBbox: null,
+  };
 });
 
 /* ── Map ── */
@@ -1646,14 +1652,14 @@ document.querySelectorAll('#map-toggle .toggle-btn').forEach(btn => {
 function checkOverlayBboxes() {
   const b = map.getBounds();
   Object.keys(NET_CFG).forEach(k => {
-    if (!OV[k].enabled) return;
+    if (!OV[k].enabled || OV[k].loading) return;
     const fb = OV[k].fetchedBbox;
-    // Always refetch when a filter is active — the user may have zoomed out
-    // to reveal new segments of the filtered route outside the cached bbox.
-    // Otherwise only refetch when the viewport leaves the buffered bbox.
-    if (!OV[k].loading && (OV[k].filteredName || !fb ||
+    // Only refetch when the viewport leaves the buffered bbox.
+    // A filter being active is NOT a reason to re-fetch on every moveend —
+    // the existing layer already has the full data for the cached bbox.
+    if (!fb ||
         b.getSouth() < fb.s || b.getWest()  < fb.w ||
-        b.getNorth() > fb.n || b.getEast()  > fb.e)) {
+        b.getNorth() > fb.n || b.getEast()  > fb.e) {
       refreshOverlay(k);
     }
   });
@@ -1791,17 +1797,33 @@ out body qt;`;
   document.getElementById('knoop-toggle').classList.remove('loading');
 }
 
-/* Show or hide label markers on all currently loaded layers instantly,
-   without needing to re-fetch from Overpass. */
+/* Show or hide route names on all currently loaded layers instantly,
+   without needing to re-fetch from Overpass.
+   Controls both the permanent label markers AND the hover tooltips on hit polys. */
 function applyNamesVisibility() {
   Object.keys(NET_CFG).forEach(net => {
     const state = OV[net];
     if (!state.layer) return;
     state.layer.eachLayer(sublayer => {
-      // Label markers are L.Marker with a _labelFor property set in buildLayer
+      // ── Permanent label markers ──
       if (sublayer._labelFor !== undefined) {
         const el = sublayer.getElement?.();
         if (el) el.style.display = showRouteNames ? '' : 'none';
+        return;
+      }
+      // ── Hover tooltips on hit polys ──
+      if (sublayer._visPoly !== undefined) {
+        const name = sublayer._visPoly?._tooltipContent;
+        if (!name) return;
+        if (showRouteNames && !sublayer.getTooltip()) {
+          sublayer.bindTooltip(name, {
+            permanent: false, sticky: true,
+            direction: 'top', offset: [0, -6],
+            className: 'route-label',
+          });
+        } else if (!showRouteNames && sublayer.getTooltip()) {
+          sublayer.unbindTooltip();
+        }
       }
     });
   });
@@ -1812,12 +1834,36 @@ function toggleOverlay(net) {
   if (state.loading) return;
   state.enabled = !state.enabled;
   document.getElementById('ov-' + net).classList.toggle('active', state.enabled);
+
   if (!state.enabled) {
+    // Remove the live layer from the map but keep cachedLayer/cachedBbox intact
+    // so a subsequent toggle-on can restore instantly without a network fetch.
     state.allAdded.forEach(lg => { try { map.removeLayer(lg); } catch(_) {} });
-    state.allAdded = []; state.layer = null; state.fetchedBbox = null; state.filteredName = null;
+    state.allAdded = []; state.layer = null; state.fetchedBbox = null;
+    // Preserve filteredName so it is reapplied if the user re-enables.
     updateShowAllBadge();
     return;
   }
+
+  // Toggle ON — check whether the cached layer covers the current viewport.
+  const b = map.getBounds();
+  const cb = state.cachedBbox;
+  const cacheValid = cb &&
+    b.getSouth() >= cb.s && b.getWest()  >= cb.w &&
+    b.getNorth() <= cb.n && b.getEast()  <= cb.e;
+
+  if (cacheValid && state.cachedLayer) {
+    // Instant restore: just re-add the layer group we already built.
+    state.cachedLayer.addTo(map);
+    state.allAdded    = [state.cachedLayer];
+    state.layer       = state.cachedLayer;
+    state.fetchedBbox = state.cachedBbox;
+    if (state.filteredName) applyRouteFilter(net, state.filteredName);
+    if (routeLayer) routeLayer.bringToFront();
+    return;
+  }
+
+  // Cache miss (first load, or viewport has moved outside cached area) — fetch.
   refreshOverlay(net);
 }
 
@@ -1827,15 +1873,16 @@ async function refreshOverlay(net) {
   const row = document.getElementById('ov-' + net);
   state.loading = true;
   row.classList.add('loading');
+
   try {
     const BUFFER  = 0.15;
-    const TIMEOUT = 30;
+    // Dense networks (rcn, lcn) need more headroom; icn/ncn are sparse enough for 30 s
+    const TIMEOUT = (net === 'rcn' || net === 'lcn') ? 60 : 30;
     const b = map.getBounds();
     const s = b.getSouth() - BUFFER, w = b.getWest()  - BUFFER;
     const n = b.getNorth() + BUFFER, e = b.getEast()  + BUFFER;
     const bbox = `${s},${w},${n},${e}`;
-    // For rcn/lcn, also match node-network relations (common in NL/BE) which
-    // use type=route OR type=network with network=rcn/lcn.
+
     const query = `[out:json][timeout:${TIMEOUT}];
 (
   relation["route"="bicycle"]["network"="${net}"](${bbox});
@@ -1844,37 +1891,56 @@ async function refreshOverlay(net) {
 .routes out body;
 way(r.routes);
 out geom qt;`;
+
     const resp = await fetch(OVERPASS_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: 'data=' + encodeURIComponent(query),
     });
+
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
-    if (data.elements === undefined || (data.remark && data.remark.includes('error'))) {
-      console.warn('Overpass error for', net, data.remark || '(no elements)');
-      state.loading = false;
-      row.classList.remove('loading');
+
+    // Bail out if the overlay was disabled while we were waiting for the response
+    if (!state.enabled) return;
+
+    if (data.elements === undefined) {
+      console.warn('Overpass returned no elements for', net);
       return;
     }
-    if (state.enabled) {
-      const newLg = buildLayer(net, data);
-      state.allAdded.forEach(lg => { try { map.removeLayer(lg); } catch(_) {} });
-      state.allAdded = [newLg]; state.layer = newLg;
-      state.fetchedBbox = { s, w, n, e };
-      newLg.addTo(map);
-      // Reapply any active route filter to the freshly built layer
-      if (state.filteredName) applyRouteFilter(net, state.filteredName);
-      if (routeLayer) routeLayer.bringToFront();
-      // Fire 'moveend' to trigger L.Renderer._update(), which repositions and
-      // repaints all SVG overlay paths. This is safe because checkOverlayBboxes
-      // now skips any overlay that is currently loading, preventing re-entrancy.
-      map.fire('moveend');
-    }
+    // Log non-fatal remarks but continue — Overpass often attaches warnings
+    // (e.g. "runtime error" on dense queries) alongside valid partial results.
+    if (data.remark) console.warn('Overpass remark for', net, data.remark);
+
+    const newLg = buildLayer(net, data);
+
+    // Swap in the new layer
+    state.allAdded.forEach(lg => { try { map.removeLayer(lg); } catch(_) {} });
+    state.allAdded = [];
+    state.layer    = null;
+
+    newLg.addTo(map);
+    state.allAdded    = [newLg];
+    state.layer       = newLg;
+    state.fetchedBbox = { s, w, n, e };
+    // Persist to cache so toggle-off/on is instant while the viewport stays put
+    state.cachedLayer = newLg;
+    state.cachedBbox  = { s, w, n, e };
+
+    if (state.filteredName) applyRouteFilter(net, state.filteredName);
+    if (routeLayer) routeLayer.bringToFront();
+
+    // Wait for the browser to paint the SVG paths before hiding the spinner.
+    // Two rAF calls: the first lets Leaflet's SVG renderer schedule _update(),
+    // the second fires after that paint has landed.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
   } catch (err) {
     console.warn('Overlay fetch failed for', net, err);
+  } finally {
+    state.loading = false;
+    row.classList.remove('loading');
   }
-  state.loading = false;
-  row.classList.remove('loading');
 }
 
 // Derive base route name by stripping section suffixes.
@@ -1904,6 +1970,11 @@ function buildLayer(net, data) {
   // relationPolys[relationId] = { name, polys: [L.Polyline, ...] }
   const relationPolys = {};
 
+  // Long-press detection state (shared across all polys in this layer)
+  // We track per-element so concurrent touches on different lines work correctly.
+  const longPressTimers = new WeakMap();
+  const LONG_PRESS_MS = 500;
+
   (data.elements || []).forEach(el => {
     if (el.type !== 'relation' || !el.members) return;
     const relId     = el.id;
@@ -1914,23 +1985,104 @@ function buildLayer(net, data) {
     el.members.forEach(m => {
       if (m.type === 'way' && ways[m.ref]) {
         const wc = ways[m.ref];
+
+        // Visible line — not interactive itself; the hit overlay handles events
         const poly = L.polyline(wc, {
           color: cfg.color, weight: cfg.weight, opacity: cfg.opacity,
           dashArray: cfg.dash, lineJoin: 'round', lineCap: 'round',
+          interactive: false,
+        });
+
+        // Wide transparent hit overlay for mouse right-click
+        // On desktop this is the target; on touch we use the DOM element below.
+        const HIT_WEIGHT = 20;
+        const hit = L.polyline(wc, {
+          color: cfg.color, weight: HIT_WEIGHT, opacity: 0,
+          lineJoin: 'round', lineCap: 'round',
           interactive: true,
         });
-        if (routeName) {
-          poly.bindTooltip(routeName, { permanent: false, sticky: true, direction: 'top', offset: [0, -6], className: 'route-label' });
+
+        if (routeName && showRouteNames) {
+          hit.bindTooltip(routeName, {
+            permanent: false, sticky: true,
+            direction: 'top', offset: [0, -6],
+            className: 'route-label',
+          });
         }
+
+        // Store tooltip content reference on visible poly too (for filter restore)
+        poly._tooltipContent = routeName || null;
+
         poly.addTo(group);
+        hit.addTo(group);
         allCoords.push(...wc);
+        // Store both so applyRouteFilter can hide/show them together
+        poly._hitPoly = hit;
+        hit._visPoly  = poly;
         polys.push(poly);
 
-        // Right-click opens route filter popup (avoids conflict with map click adding waypoints)
-        poly.on('contextmenu', e => {
+        // ── Desktop right-click ──
+        hit.on('contextmenu', e => {
           L.DomEvent.stopPropagation(e);
           L.DomEvent.preventDefault(e);
           openRouteCtxMenu(e.originalEvent.clientX, e.originalEvent.clientY, net, relId, routeName);
+        });
+
+        // ── Touch long-press (iPad / iPhone) ──
+        // We attach directly to the SVG element so the full rendered stroke
+        // area (weight px wide) is the touch target — no invisible overlay needed.
+        // requestAnimationFrame ensures the element exists after Leaflet renders.
+        requestAnimationFrame(() => {
+          const el = hit.getElement();
+          if (!el) return;
+
+          // Expand the pointer/touch target without changing visual weight.
+          // stroke-width on the SVG element is set by Leaflet; we increase the
+          // invisible "catch" area using a CSS stroke-width on a filter or by
+          // wrapping in a <g> — the simplest approach is to set
+          // pointer-events on the path to 'stroke' and bump its stroke-width
+          // via a custom data attribute that Leaflet won't overwrite.
+          // Actually the simplest reliable cross-browser approach: set
+          // the element's style stroke-width to a larger value so touch
+          // hit-testing is wider, but keep the visual line via opacity.
+          // We do this by adding a second, wider, fully-transparent SVG path
+          // as a sibling in the pane — but that's what our `hit` polyline already is.
+          // The real fix for iOS: ensure `pointer-events` is `stroke` or `all`.
+          el.style.pointerEvents = 'stroke';
+          // Make the invisible hit-area stroke wide enough for fat fingers
+          el.setAttribute('stroke-width', String(HIT_WEIGHT));
+
+          el.addEventListener('touchstart', onTouchStart, { passive: true });
+          el.addEventListener('touchend',   onTouchEnd,   { passive: true });
+          el.addEventListener('touchmove',  onTouchMove,  { passive: true });
+          el.addEventListener('touchcancel',onTouchEnd,   { passive: true });
+
+          function onTouchStart(ev) {
+            if (ev.touches.length !== 1) { clearTimer(); return; }
+            const touch = ev.touches[0];
+            const timer = setTimeout(() => {
+              longPressTimers.delete(el);
+              openRouteCtxMenu(touch.clientX, touch.clientY, net, relId, routeName);
+            }, LONG_PRESS_MS);
+            longPressTimers.set(el, { timer, x: touch.clientX, y: touch.clientY });
+          }
+
+          function onTouchEnd() { clearTimer(); }
+
+          function onTouchMove(ev) {
+            const state = longPressTimers.get(el);
+            if (!state) return;
+            const t = ev.touches[0];
+            // Cancel if finger moved more than ~10px (user is panning the map)
+            if (Math.abs(t.clientX - state.x) > 10 || Math.abs(t.clientY - state.y) > 10) {
+              clearTimer();
+            }
+          }
+
+          function clearTimer() {
+            const state = longPressTimers.get(el);
+            if (state) { clearTimeout(state.timer); longPressTimers.delete(el); }
+          }
         });
       }
     });
@@ -1951,10 +2103,10 @@ function buildLayer(net, data) {
       lm._labelFor = routeName;
       lm.addTo(group);
       if (!namesOn) {
-        setTimeout(() => {
+        requestAnimationFrame(() => {
           const el = lm.getElement?.();
           if (el) el.style.display = 'none';
-        }, 0);
+        });
       }
     }
   });
@@ -3462,17 +3614,24 @@ function applyRouteFilter(net, filterName) {
   Object.entries(rp).forEach(([id, { name, polys }]) => {
     const visible = !filterName || baseRouteName(name) === filterName;
     polys.forEach(p => {
-      p.setStyle({ opacity: visible ? NET_CFG[net].opacity : 0, interactive: visible });
+      // p is the visible poly; p._hitPoly is its transparent hit overlay
+      const targetOpacity = visible ? NET_CFG[net].opacity : 0;
+      p.setStyle({ opacity: targetOpacity });
+      if (p._hitPoly) p._hitPoly.setStyle({ interactive: visible });
+
       if (visible) {
-        // Restore tooltip if it was stored
-        if (p._tooltipContent && !p.getTooltip()) {
-          p.bindTooltip(p._tooltipContent, { permanent: false, sticky: true, direction: 'top', offset: [0, -6], className: 'route-label' });
+        // Restore tooltip on hit poly only if route names are currently on
+        if (showRouteNames && p._tooltipContent && p._hitPoly && !p._hitPoly.getTooltip()) {
+          p._hitPoly.bindTooltip(p._tooltipContent, {
+            permanent: false, sticky: true,
+            direction: 'top', offset: [0, -6],
+            className: 'route-label',
+          });
         }
       } else {
-        // Store tooltip content then remove it so it can't fire while hidden
-        if (p.getTooltip()) {
-          p._tooltipContent = p.getTooltip().getContent();
-          p.unbindTooltip();
+        // Remove tooltip from hit poly so it can't fire while hidden
+        if (p._hitPoly?.getTooltip()) {
+          p._hitPoly.unbindTooltip();
         }
       }
     });
