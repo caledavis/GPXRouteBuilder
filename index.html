@@ -773,9 +773,11 @@
     font-size: 11px;
     font-weight: 600;
     color: #1e293b;
-    white-space: normal;
+    white-space: nowrap;
     width: max-content;
     max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     box-shadow: 0 1px 5px rgba(0,0,0,0.18);
     pointer-events: none;
     line-height: 1.4;
@@ -1209,7 +1211,85 @@
     box-sizing: border-box;
     transition: border-color 0.15s;
   }
-  .ctx-name-input:focus { border-color: var(--accent2); }</style>
+  .ctx-name-input:focus { border-color: var(--accent2); }
+  /* ── Elevation panel ── */
+  .elev-panel {
+    flex-shrink: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    height: 0;
+    overflow: hidden;
+    transition: height 0.25s ease, background 0.25s, border-color 0.25s;
+  }
+  .elev-panel.open { height: 168px; }
+
+  .elev-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px;
+    height: 30px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    user-select: none;
+  }
+  .elev-header:hover { background: var(--surface2); }
+  .elev-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .elev-stats {
+    display: flex;
+    gap: 14px;
+    font-size: 10px;
+  }
+  .elev-stat { color: var(--text-dim); }
+  .elev-stat-val { color: var(--accent); font-weight: 600; }
+  .elev-chevron { font-size: 9px; color: var(--text-dim); transition: transform 0.2s; }
+  .elev-panel.open .elev-chevron { transform: rotate(180deg); }
+
+  .elev-body {
+    flex: 1;
+    position: relative;
+    padding: 4px 12px 6px 10px;
+    min-height: 0;
+  }
+  .elev-body svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .elev-empty {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 11px; color: var(--text-dim);
+    pointer-events: none;
+  }
+
+  .elev-btn {
+    height: var(--ctrl-h);
+    padding: 0 11px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--mono);
+    color: var(--text-dim);
+    letter-spacing: 0.05em;
+    transition: all 0.2s;
+    display: flex; align-items: center; gap: 5px;
+    flex-shrink: 0;
+    box-sizing: border-box;
+  }
+  .elev-btn:hover  { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
+  .elev-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
+</style>
 <script data-goatcounter="https://caledavis.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
 </head>
@@ -1237,6 +1317,7 @@
       <span class="snap-label">SNAP</span>
     </div>
     <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
+    <button class="elev-btn" id="elev-btn" title="Show elevation profile">↗ Elev</button>
     <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions">©</button>
   </div>
 </header>
@@ -1361,6 +1442,21 @@
     <div class="preview-body"><pre id="gpx-preview"></pre></div>
   </div>
 
+</div>
+
+<!-- ── Elevation profile panel ── -->
+<div class="elev-panel" id="elev-panel">
+  <div class="elev-header" id="elev-header">
+    <div class="elev-title">
+      ↗ Elevation
+      <span class="elev-stats" id="elev-stats"></span>
+    </div>
+    <span class="elev-chevron" id="elev-chevron">▲</span>
+  </div>
+  <div class="elev-body" id="elev-body">
+    <div class="elev-empty" id="elev-empty">Enable snapping and add waypoints to see elevation</div>
+    <svg id="elev-svg" xmlns="http://www.w3.org/2000/svg"></svg>
+  </div>
 </div>
 
 <!-- ── Marker context menu ── -->
@@ -1839,11 +1935,7 @@ function applyNamesVisibility() {
         const name = sublayer._visPoly?._tooltipContent;
         if (!name) return;
         if (showRouteNames && !sublayer.getTooltip()) {
-          const { line1, line2 } = labelLines(name, sublayer._visPoly?._tooltipNet === 'icn' ? undefined : null);
-          const tooltipHtml = line2
-            ? `<span>${escapeHtml(line1)}</span><br><span style="font-weight:400;opacity:0.75">${escapeHtml(line2)}</span>`
-            : escapeHtml(line1);
-          sublayer.bindTooltip(tooltipHtml, {
+          sublayer.bindTooltip(name, {
             permanent: false, sticky: true,
             direction: 'top', offset: [0, -6],
             className: 'route-label',
@@ -1912,29 +2004,7 @@ async function refreshOverlay(net) {
     const s  = bs - BUFFER, w = bw - BUFFER, n = bn + BUFFER, e = be + BUFFER;
     const bbox = `${s},${w},${n},${e}`;
 
-    // icn and ncn use superroute structures up to 3 levels deep.
-    // rcn and lcn are flat route relations with direct way members — the extra
-    // recursion is unnecessary and adds Overpass load for dense networks.
-    const useDeepQuery = (net === 'icn' || net === 'ncn');
-    const query = useDeepQuery
-      ? `[out:json][timeout:${TIMEOUT}];
-(
-  relation["route"="bicycle"]["network"="${net}"](${bbox});
-  relation["type"="route"]["network"="${net}"](${bbox});
-  relation["type"="superroute"]["network"="${net}"](${bbox});
-)->.routes;
-.routes out body;
-rel(r.routes)->.subroutes;
-.subroutes out body;
-rel(r.subroutes)->.subsubroutes;
-.subsubroutes out body;
-(
-  way(r.routes);
-  way(r.subroutes);
-  way(r.subsubroutes);
-);
-out geom qt;`
-      : `[out:json][timeout:${TIMEOUT}];
+    const query = `[out:json][timeout:${TIMEOUT}];
 (
   relation["route"="bicycle"]["network"="${net}"](${bbox});
   relation["type"="route"]["network"="${net}"](${bbox});
@@ -1943,42 +2013,14 @@ out geom qt;`
 way(r.routes);
 out geom qt;`;
 
-    // ── localStorage daily cache ──
-    // Key encodes network, bbox (2 dp) and today's date so stale data
-    // is automatically evicted the next day without manual housekeeping.
-    const today    = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
-    const bboxKey  = [s, w, n, e].map(v => v.toFixed(2)).join(',');
-    const cacheKey = `overlay_cache:${net}:${bboxKey}:${today}`;
+    const resp = await fetch(OVERPASS_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'data=' + encodeURIComponent(query),
+    });
 
-    let data;
-    try {
-      const cached = localStorage.getItem(cacheKey);
-      if (cached) {
-        data = JSON.parse(cached);
-      }
-    } catch (_) { /* localStorage unavailable or corrupt — fall through to fetch */ }
-
-    if (!data) {
-      const resp = await fetch(OVERPASS_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'data=' + encodeURIComponent(query),
-      });
-
-      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-      data = await resp.json();
-
-      // Persist to localStorage, evicting any stale entries for this network.
-      try {
-        // Remove old cache entries for this network before writing the new one
-        // so storage doesn't grow unboundedly across bbox changes.
-        const prefix = `overlay_cache:${net}:`;
-        Object.keys(localStorage)
-          .filter(k => k.startsWith(prefix) && k !== cacheKey)
-          .forEach(k => localStorage.removeItem(k));
-        localStorage.setItem(cacheKey, JSON.stringify(data));
-      } catch (_) { /* storage full or unavailable — silently skip */ }
-    }
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
 
     // Bail out if the overlay was disabled while we were waiting for the response
     if (!state.enabled) return;
@@ -2032,38 +2074,11 @@ out geom qt;`;
 // Derive base route name by stripping section suffixes.
 // Strips everything from the first " - " onwards, so both
 // "LF Kustroute - 08 - Noordwijk - Oost" → "LF Kustroute" and
-// Strips the geographic suffix from a route name, returning just the base route identity.
-// Normalises all dash separators (with or without surrounding spaces) to a canonical
-// " – " so that "F5 Fietssnelweg Antwerpen - Bergen", "F5 Fietssnelweg Antwerpen – Bergen"
-// and "F5 Fietssnelweg Antwerpen–Bergen" all yield the same base name.
+// "EUROVELO 12 - NORTH SEA CYCLE ROUTE - PART NEDERLAND WEST" → "EUROVELO 12"
+// produce the correct base name for cross-section filter matching.
 function baseRouteName(name) {
   if (!name) return null;
-  // Collapse any dash/en-dash with optional surrounding whitespace → " – "
-  const normalised = name.replace(/\s*[-–]\s*/g, ' – ');
-  return normalised.replace(/\s+–\s+.+$/, '').trim();
-}
-
-// Returns { line1, line2 } for label display.
-// line2 is the second dash-separated segment when it looks like a descriptive
-// name (≥ 3 chars, not purely a number/short code), otherwise null.
-// e.g. "EUROVELO 12 - NORTH SEA CYCLE ROUTE - PART NL" → { line1: "EUROVELO 12", line2: "NORTH SEA CYCLE ROUTE" }
-//      "LF Kustroute - 08 - Noordwijk - Oost"          → { line1: "LF Kustroute", line2: null }
-// subtitleOverride lets callers supply a parent-derived subtitle that takes
-// precedence over whatever the name string itself would produce as line2.
-// subtitleOverride behaviour:
-//   undefined  → use the heuristic (split on first dash, filter out bare numbers)
-//   null       → suppress heuristic entirely; always single-line
-//   string     → use that string as line2 unconditionally
-function labelLines(name, subtitleOverride) {
-  if (!name) return { line1: name, line2: null };
-  const normalised = name.replace(/\s+[-–]\s+/g, ' – ');
-  const parts = normalised.split(' – ');
-  const line1  = parts[0].trim();
-  if (subtitleOverride === null) return { line1, line2: null };
-  if (subtitleOverride)          return { line1, line2: subtitleOverride };
-  const second = parts[1]?.trim() || null;
-  const line2  = second && !/^\d+([a-z]?)$/i.test(second) && second.length >= 3 ? second : null;
-  return { line1, line2 };
+  return name.replace(/\s*[-–]\s*.+$/, '').trim();
 }
 
 function buildLayer(net, data) {
@@ -2078,70 +2093,8 @@ function buildLayer(net, data) {
     }
   });
 
-  // EuroVelo routes have inconsistent sub-relation naming in OSM — some carry
-  // the full route name at every level, others drop it at the deepest level
-  // (e.g. "EuroVelo 2 - Nederland part 1" instead of "Capitals Route").
-  // The ref tag (EV1…EV17) is reliably set at every nesting level, so we use
-  // a hardcoded lookup table as the authoritative subtitle source, then fall
-  // back to BFS propagation from the name tag for any unknown refs.
-  const EV_SUBTITLE = {
-    EV1:  'Atlantic Coast Route',
-    EV2:  'Capitals Route',
-    EV3:  "Pilgrims' Route",
-    EV4:  'Central Europe Route',
-    EV5:  'Via Romea Francigena',
-    EV6:  'Atlantic – Black Sea',
-    EV7:  'Sun Route',
-    EV8:  'Mediterranean Route',
-    EV9:  'Amber Route',
-    EV10: 'Baltic Sea Cycle Route',
-    EV11: 'East Europe Route',
-    EV12: 'North Sea Cycle Route',
-    EV13: 'Iron Curtain Trail',
-    EV15: 'Rhine Cycle Route',
-    EV17: 'Rhône Cycle Route',
-    EV19: 'Meuse Cycle Route',
-  };
-
-  const subRelSubtitle = {};
-  const childrenOf = {};
-
-  (data.elements || []).forEach(el => {
-    if (el.type !== 'relation') return;
-    // Prefer the authoritative lookup table keyed on the ref tag
-    const ref = el.tags?.ref || null;
-    if (ref && EV_SUBTITLE[ref]) {
-      subRelSubtitle[el.id] = EV_SUBTITLE[ref];
-    } else {
-      // Fall back to parsing parts[1] from the name for non-EuroVelo ICN routes
-      const name = el.tags?.name || null;
-      if (name) {
-        const { line2 } = labelLines(name);
-        if (line2) subRelSubtitle[el.id] = line2;
-      }
-    }
-    // Build parent→children adjacency for BFS propagation
-    (el.members || []).forEach(m => {
-      if (m.type !== 'relation') return;
-      (childrenOf[el.id] = childrenOf[el.id] || []).push(m.ref);
-    });
-  });
-
-  // BFS top-down: propagate subtitle to children that have none of their own
-  const bfsQueue = Object.keys(subRelSubtitle).map(Number);
-  const visited  = new Set(bfsQueue);
-  let bfsHead = 0;
-  while (bfsHead < bfsQueue.length) {
-    const parentId = bfsQueue[bfsHead++];
-    const subtitle = subRelSubtitle[parentId];
-    (childrenOf[parentId] || []).forEach(childId => {
-      if (!subRelSubtitle[childId]) subRelSubtitle[childId] = subtitle;
-      if (!visited.has(childId)) { visited.add(childId); bfsQueue.push(childId); }
-    });
-  }
-
-  const namesOn      = cfg.showLabels && showRouteNames;
-  const pendingLabels = [];         // { routeName, inheritedSubtitle, allCoords }
+  const namesOn  = cfg.showLabels && showRouteNames;
+  const labelled = new Set();
 
   // Track polylines per relation so we can show/hide by route
   // relationPolys[relationId] = { name, polys: [L.Polyline, ...] }
@@ -2156,9 +2109,6 @@ function buildLayer(net, data) {
     if (el.type !== 'relation' || !el.members) return;
     const relId     = el.id;
     const routeName = el.tags?.name || el.tags?.ref || null;
-    // If this is a sub-relation, override line2 with the parent's subtitle
-    // (e.g. "Capitals Route" instead of "Nederland part 1").
-    const inheritedSubtitle = subRelSubtitle[relId] || null;
     const allCoords = [];
     const polys     = [];
 
@@ -2183,11 +2133,7 @@ function buildLayer(net, data) {
         });
 
         if (routeName && showRouteNames) {
-          const { line1, line2 } = labelLines(routeName, net === 'icn' ? inheritedSubtitle : null);
-          const tooltipHtml = line2
-            ? `<span>${escapeHtml(line1)}</span><br><span style="font-weight:400;opacity:0.75">${escapeHtml(line2)}</span>`
-            : escapeHtml(line1);
-          hit.bindTooltip(tooltipHtml, {
+          hit.bindTooltip(routeName, {
             permanent: false, sticky: true,
             direction: 'top', offset: [0, -6],
             className: 'route-label',
@@ -2195,9 +2141,7 @@ function buildLayer(net, data) {
         }
 
         // Store tooltip content reference on visible poly too (for filter restore)
-        // Keep full routeName so applyNamesVisibility can rebuild the tooltip correctly.
         poly._tooltipContent = routeName || null;
-        poly._tooltipNet     = net;
 
         poly.addTo(group);
         hit.addTo(group);
@@ -2303,70 +2247,27 @@ function buildLayer(net, data) {
 
     if (polys.length) relationPolys[relId] = { name: routeName, polys };
 
-    if (cfg.showLabels && routeName && allCoords.length >= 2) {
-      // Collect candidate coords for this route so we can place labels
-      // spaced out across the whole layer after all routes are processed.
-      pendingLabels.push({ routeName, inheritedSubtitle, allCoords });
-    }
-  });
-
-  // ── Spaced label placement ──
-  // Place at most one label per route per ~200 px of screen space.
-  // We defer to rAF so map.latLngToContainerPoint() is available.
-  // occupiedCells is a Set of "col,row" grid keys (cell = 200 px).
-  // Each route gets labels at candidate points spaced every ~25% of its
-  // length, but only if the cell is not already taken by another label.
-  if (cfg.showLabels && pendingLabels.length) {
-    requestAnimationFrame(() => {
-      // Scale cell size with zoom: at low zoom (sparse routes) labels can be
-      // further apart; at high zoom (dense street-level view) pack them tighter.
-      const zoom = map.getZoom();
-      const CELL = Math.round(80 + (zoom - 10) * 12); // ~200px at z=20, ~80px at z=10
-      const occupiedCells = new Set();
-
-      function cellKey(latlng) {
-        const pt = map.latLngToContainerPoint(latlng);
-        return `${Math.floor(pt.x / CELL)},${Math.floor(pt.y / CELL)}`;
-      }
-
-      function tryPlace(latlng, routeName, inheritedSubtitle) {
-        const key = cellKey(latlng);
-        if (occupiedCells.has(key)) return false;
-        occupiedCells.add(key);
-
-        const { line1, line2 } = labelLines(routeName, net === 'icn' ? inheritedSubtitle : null);
-        const inner = line2
-          ? `${escapeHtml(line1)}<br><span style="font-weight:400;opacity:0.75">${escapeHtml(line2)}</span>`
-          : escapeHtml(line1);
-        const lm = L.marker(latlng, {
-          interactive: false,
-          icon: L.divIcon({
-            className: 'route-label-icon',
-            html: `<div class="route-label" style="border-left:3px solid ${cfg.color}">${inner}</div>`,
-            iconSize: null, iconAnchor: [0, 10],
-          }),
-        });
-        lm._labelFor = routeName;
-        lm.addTo(group);
-        if (!namesOn) {
+    if (cfg.showLabels && routeName && allCoords.length >= 2 && !labelled.has(routeName)) {
+      labelled.add(routeName);
+      const mid = allCoords[Math.floor(allCoords.length / 2)];
+      const lm = L.marker(mid, {
+        interactive: false,
+        icon: L.divIcon({
+          className: 'route-label-icon',
+          html: `<div class="route-label" style="border-left:3px solid ${cfg.color}">${escapeHtml(routeName)}</div>`,
+          iconSize: null, iconAnchor: [0, 10],
+        }),
+      });
+      lm._labelFor = routeName;
+      lm.addTo(group);
+      if (!namesOn) {
+        requestAnimationFrame(() => {
           const el = lm.getElement?.();
           if (el) el.style.display = 'none';
-        }
-        return true;
+        });
       }
-
-      pendingLabels.forEach(({ routeName, inheritedSubtitle, allCoords }) => {
-        if (!allCoords.length) return;
-        // Try placing at 0%, 25%, 50%, 75% along the route.
-        // Stop after placing one label per route (keeps it tidy).
-        const steps = [0.5, 0.25, 0.75, 0, 1];
-        for (const t of steps) {
-          const idx = Math.min(Math.floor(t * allCoords.length), allCoords.length - 1);
-          if (tryPlace(allCoords[idx], routeName, inheritedSubtitle)) break;
-        }
-      });
-    });
-  }
+    }
+  });
 
   // Store relation polyline map on the group for later filtering
   group._relationPolys = relationPolys;
@@ -2467,6 +2368,7 @@ document.getElementById('ctx-icon').addEventListener('click', () => {
   refreshIcons();
   renderSidebar();
   updateGpxPreview();
+  if (elevOpen) drawElevation();
   triggerAutosave();
 });
 
@@ -2721,7 +2623,7 @@ async function routeSegmentBRouter(coords, gen) {
     const data = await res.json();
     const feature = data.features?.[0];
     if (!feature || gen !== routeGeneration) return null;
-    return feature.geometry.coordinates.map(c => [c[1], c[0]]);
+    return feature.geometry.coordinates.map(c => [c[1], c[0], c[2] ?? null]);
   } catch (_) { return null; }
 }
 
@@ -3004,6 +2906,7 @@ function renderSidebar() {
       refreshIcons();
       renderSidebar();
       updateGpxPreview();
+      if (elevOpen) drawElevation();
       triggerAutosave();
     });
   });
@@ -3028,7 +2931,7 @@ function renderSidebar() {
   }
 
   list.querySelectorAll('.wp-name-input').forEach(inp => {
-    inp.addEventListener('input', e => { waypoints[+e.target.dataset.index].name = e.target.value; updateGpxPreview(); });
+    inp.addEventListener('input', e => { waypoints[+e.target.dataset.index].name = e.target.value; updateGpxPreview(); if (elevOpen) drawElevation(); });
     inp.addEventListener('click', e => e.stopPropagation());
   });
   list.querySelectorAll('.waypoint-item').forEach(el => {
@@ -3879,11 +3782,7 @@ function applyRouteFilter(net, filterName) {
       if (visible) {
         // Restore tooltip on hit poly only if route names are currently on
         if (showRouteNames && p._tooltipContent && p._hitPoly && !p._hitPoly.getTooltip()) {
-          const { line1, line2 } = labelLines(p._tooltipContent, p._visPoly?._tooltipNet === 'icn' ? undefined : null);
-          const tooltipHtml = line2
-            ? `<span>${escapeHtml(line1)}</span><br><span style="font-weight:400;opacity:0.75">${escapeHtml(line2)}</span>`
-            : escapeHtml(line1);
-          p._hitPoly.bindTooltip(tooltipHtml, {
+          p._hitPoly.bindTooltip(p._tooltipContent, {
             permanent: false, sticky: true,
             direction: 'top', offset: [0, -6],
             className: 'route-label',
@@ -3897,17 +3796,6 @@ function applyRouteFilter(net, filterName) {
       }
     });
   });
-
-  // Show/hide permanent label markers to match the filter
-  if (state.layer && showRouteNames) {
-    state.layer.eachLayer(sublayer => {
-      if (sublayer._labelFor === undefined) return;
-      const labelVisible = !filterName || baseRouteName(sublayer._labelFor) === filterName;
-      const el = sublayer.getElement?.();
-      if (el) el.style.display = labelVisible ? '' : 'none';
-    });
-  }
-
   state.filteredName = filterName || null;
   updateShowAllBadge();
 }
@@ -3948,6 +3836,272 @@ document.getElementById('route-ctx-all').addEventListener('click', () => {
 document.addEventListener('click', e => {
   if (!routeCtxMenu.contains(e.target)) closeRouteCtxMenu();
 });
+
+/* ══════════════════════════════════════════════════════════════
+   ELEVATION PROFILE
+   ══════════════════════════════════════════════════════════════ */
+
+let elevOpen = false;
+
+const elevPanel  = document.getElementById('elev-panel');
+const elevBtn    = document.getElementById('elev-btn');
+const elevHeader = document.getElementById('elev-header');
+const elevSvg    = document.getElementById('elev-svg');
+const elevEmpty  = document.getElementById('elev-empty');
+const elevStats  = document.getElementById('elev-stats');
+
+function setElevOpen(open) {
+  elevOpen = open;
+  elevPanel.classList.toggle('open', open);
+  elevBtn.classList.toggle('active', open);
+  elevBtn.title = open ? 'Hide elevation profile' : 'Show elevation profile';
+  setTimeout(() => map.invalidateSize(), 270);
+  // Delay draw until after the CSS height transition finishes so that
+  // clientWidth/clientHeight return the real rendered dimensions.
+  if (open) setTimeout(drawElevation, 270);
+}
+
+elevBtn.addEventListener('click',    () => setElevOpen(!elevOpen));
+elevHeader.addEventListener('click', () => setElevOpen(!elevOpen));
+window.addEventListener('resize',    () => { if (elevOpen) drawElevation(); });
+
+/* Called at the end of every updateRoute() run */
+function onRouteUpdated() {
+  if (elevOpen) drawElevation();
+}
+
+/* ── Main draw function ── */
+function drawElevation() {
+  if (!elevOpen) return;
+
+  if (!snapEnabled || waypoints.length < 2 || segmentCache.length === 0) {
+    elevSvg.innerHTML = '';
+    elevStats.innerHTML = '';
+    elevEmpty.style.display = '';
+    elevEmpty.textContent = snapEnabled
+      ? 'Add at least two waypoints to see elevation'
+      : 'Enable snapping to see elevation';
+    return;
+  }
+
+  // ── Flatten segment cache into (dist, ele) pairs ──
+  // Also record cumulative distance at the start of each segment (= waypoint boundary).
+  const pts    = [];   // { dist, ele }
+  const wpDist = [];   // wpDist[i] = cumulative metres at waypoints[i]
+  let cumDist  = 0;
+  let hasEle   = false;
+
+  for (let si = 0; si < segmentCache.length; si++) {
+    const seg = segmentCache[si];
+    wpDist[si] = cumDist;          // distance at waypoints[si]
+
+    if (!seg) continue;
+
+    for (let j = 0; j < seg.length; j++) {
+      const pt  = seg[j];
+      const ele = (pt.length > 2 && pt[2] != null) ? pt[2] : null;
+      if (ele !== null) hasEle = true;
+      if (j > 0) cumDist += map.distance(seg[j - 1], pt);
+      // Skip duplicated junction point at start of segments after the first
+      if (j === 0 && pts.length > 0) continue;
+      pts.push({ dist: cumDist, ele });
+    }
+  }
+  wpDist[segmentCache.length] = cumDist;   // distance at last waypoint
+
+  if (!hasEle || pts.length < 2) {
+    elevSvg.innerHTML = '';
+    elevStats.innerHTML = '';
+    elevEmpty.style.display = '';
+    elevEmpty.textContent = 'No elevation data for this route (BRouter required)';
+    return;
+  }
+
+  elevEmpty.style.display = 'none';
+
+  // ── Stats ──
+  let ascent = 0, descent = 0;
+  for (let i = 1; i < pts.length; i++) {
+    if (pts[i].ele === null || pts[i - 1].ele === null) continue;
+    const d = pts[i].ele - pts[i - 1].ele;
+    if (d > 0) ascent += d; else descent -= d;
+  }
+  const eles  = pts.filter(p => p.ele !== null).map(p => p.ele);
+  const minE  = Math.min(...eles);
+  const maxE  = Math.max(...eles);
+
+  elevStats.innerHTML =
+    '<span class="elev-stat">&#8593; <span class="elev-stat-val">' + Math.round(ascent)  + ' m</span></span>' +
+    '<span class="elev-stat">&#8595; <span class="elev-stat-val">' + Math.round(descent) + ' m</span></span>' +
+    '<span class="elev-stat">' + Math.round(minE) + '&ndash;' + Math.round(maxE) + ' m</span>';
+
+  // ── SVG layout ──
+  const W   = elevSvg.clientWidth  || elevSvg.parentElement.clientWidth  || 600;
+  const H   = elevSvg.clientHeight || elevSvg.parentElement.clientHeight || 110;
+  const PAD = { top: 18, right: 10, bottom: 22, left: 40 };
+  const gW  = W - PAD.left - PAD.right;
+  const gH  = H - PAD.top  - PAD.bottom;
+
+  // ── Build SVG pieces as plain strings ──
+  const validPts = pts.filter(p => p.ele !== null);
+
+  // Base the x-axis scale on the last point that actually has elevation data,
+  // not the raw cumulative distance which may extend further if the final
+  // segment(s) used Valhalla fallback and returned no elevation.
+  const totalD = validPts[validPts.length - 1].dist || 1;
+  const eRange = (maxE - minE) || 1;
+  // Enforce a minimum display range of 20m so flat routes still get a
+  // readable y-axis rather than all labels collapsing to the bottom.
+  const MIN_RANGE = 20;
+  const displayRange = Math.max(eRange, MIN_RANGE);
+  // Centre the display window on the actual data midpoint
+  const midE   = (minE + maxE) / 2;
+  const eMin   = midE - displayRange / 2;
+  const eMax   = midE + displayRange / 2;
+
+  function px(dist) { return PAD.left + (dist / totalD) * gW; }
+  function py(ele)  { return PAD.top  + (1 - (ele - eMin) / (eMax - eMin)) * gH; }
+
+  // ── Y-axis ticks ──
+  const nTicks  = Math.max(2, Math.min(4, Math.floor(gH / 28)));
+  const rawStep = displayRange / nTicks;
+  const mag     = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const step    = Math.ceil(rawStep / mag) * mag;
+  const t0      = Math.ceil(eMin / step) * step;
+  const yTicks  = [];
+  for (let v = t0; v <= eMax; v += step) yTicks.push(v);
+
+  // ── X-axis distance ticks ──
+  // Always start with 0 km at the left edge, then intermediate ticks,
+  // then the final distance right-anchored at the right edge.
+  const nXTicks = Math.max(1, Math.floor(gW / 90));
+  const xTicks  = [];
+  for (let i = 1; i < nXTicks; i++) xTicks.push(i * totalD / nXTicks);
+  xTicks.push(totalD);  // always label the final distance at the right edge
+
+  // ── CSS variables ──
+  const cs      = getComputedStyle(document.documentElement);
+  const accent  = cs.getPropertyValue('--accent').trim()   || '#16a34a';
+  const textDim = cs.getPropertyValue('--text-dim').trim() || '#64748b';
+  const border  = cs.getPropertyValue('--border').trim()   || '#d1d9e6';
+  const surface = cs.getPropertyValue('--surface').trim()  || '#ffffff';
+
+  // Filled area path
+  let areaD = '';
+  validPts.forEach(function(p, i) {
+    areaD += (i === 0 ? 'M' : 'L') + px(p.dist).toFixed(1) + ',' + py(p.ele).toFixed(1) + ' ';
+  });
+  areaD += 'L' + px(validPts[validPts.length - 1].dist).toFixed(1) + ',' + (PAD.top + gH).toFixed(1) + ' ';
+  areaD += 'L' + px(validPts[0].dist).toFixed(1) + ',' + (PAD.top + gH).toFixed(1) + ' Z';
+
+  // Polyline points
+  let linePoints = '';
+  validPts.forEach(function(p) {
+    linePoints += px(p.dist).toFixed(1) + ',' + py(p.ele).toFixed(1) + ' ';
+  });
+
+  // Y-axis grid + labels
+  let yAxisSvg = '';
+  yTicks.forEach(function(v) {
+    const y = py(v).toFixed(1);
+    yAxisSvg +=
+      '<line x1="' + PAD.left + '" y1="' + y + '" x2="' + (PAD.left + gW) + '" y2="' + y + '"' +
+      ' stroke="' + border + '" stroke-width="1"/>' +
+      '<text x="' + (PAD.left - 5) + '" y="' + y + '" text-anchor="end" dominant-baseline="middle"' +
+      ' font-family="\'IBM Plex Mono\',monospace" font-size="9" fill="' + textDim + '">' + Math.round(v) + '</text>';
+  });
+
+  // X-axis labels
+  let xAxisSvg = '';
+  xAxisSvg =
+    // "0 km" label left-anchored at the y-axis
+    '<text x="' + PAD.left + '" y="' + (PAD.top + gH + 14) + '" text-anchor="start"' +
+    ' font-family="\'IBM Plex Mono\',monospace" font-size="9" fill="' + textDim + '">0 km</text>';
+  xTicks.forEach(function(d, xi) {
+    const x      = px(d).toFixed(1);
+    const lbl    = (d / 1000).toFixed(1) + ' km';
+    const isLast = xi === xTicks.length - 1;
+    const anchor = isLast ? 'end' : 'middle';
+    xAxisSvg +=
+      '<text x="' + x + '" y="' + (PAD.top + gH + 14) + '" text-anchor="' + anchor + '"' +
+      ' font-family="\'IBM Plex Mono\',monospace" font-size="9" fill="' + textDim + '">' + lbl + '</text>';
+  });
+
+  // Waypoint markers
+  let wpSvg = '';
+  for (let wi = 0; wi <= segmentCache.length; wi++) {
+    const d = wpDist[wi];
+    if (d === undefined) continue;
+
+    // Elevation: first point of this segment, or last point of previous segment
+    let ele = null;
+    if (wi < segmentCache.length && segmentCache[wi] && segmentCache[wi].length > 0) {
+      const p0 = segmentCache[wi][0];
+      ele = (p0.length > 2 && p0[2] != null) ? p0[2] : null;
+    }
+    if (ele === null && wi > 0 && segmentCache[wi - 1]) {
+      const seg = segmentCache[wi - 1];
+      const pN  = seg[seg.length - 1];
+      ele = (pN && pN.length > 2 && pN[2] != null) ? pN[2] : null;
+    }
+    if (ele === null) continue;
+
+    const isFirst  = wi === 0;
+    const isLast   = wi === segmentCache.length;
+    const cxRaw    = px(d);
+    // Clamp first waypoint so its dot sits just inside the graph, not on the axis border
+    const cxClamped = isFirst ? Math.max(cxRaw, PAD.left + 4) : cxRaw;
+    const cx       = cxClamped.toFixed(1);
+    const cy       = py(ele).toFixed(1);
+    const baseY    = (PAD.top + gH).toFixed(1);
+    const labelY   = (PAD.top + 9).toFixed(1);  // fixed top of graph
+    const color    = isFirst ? '#16a34a' : isLast ? '#dc2626' : waypoints[wi]?.sym === 'Residence' ? '#ca8a04' : '#2563eb';
+    const rawLabel = (waypoints[wi] && waypoints[wi].name) ? waypoints[wi].name : String(wi + 1);
+    const label    = escapeHtml(rawLabel.length > 14 ? rawLabel.slice(0, 13) + '\u2026' : rawLabel);
+    const cxN      = parseFloat(cx);
+    const anchor   = cxN > PAD.left + gW - 36 ? 'end' : cxN < PAD.left + 36 ? 'start' : 'middle';
+
+    wpSvg +=
+      // Dashed line from label down to the dot
+      '<line x1="' + cx + '" y1="' + (PAD.top + 12) + '" x2="' + cx + '" y2="' + cy + '"' +
+      ' stroke="' + color + '" stroke-width="1" stroke-dasharray="2 2" opacity="0.45"/>' +
+      // Dot at actual elevation
+      '<circle cx="' + cx + '" cy="' + cy + '" r="3.5"' +
+      ' fill="' + color + '" stroke="' + surface + '" stroke-width="1.5"/>' +
+      // Label fixed at top of graph
+      '<text x="' + cx + '" y="' + labelY + '" text-anchor="' + anchor + '" dominant-baseline="auto"' +
+      ' font-family="\'IBM Plex Mono\',monospace" font-size="8.5" font-weight="600"' +
+      ' fill="' + color + '">' + label + '</text>';
+  }
+
+  // ── Assemble and inject ──
+  elevSvg.innerHTML =
+    '<defs>' +
+      '<linearGradient id="eg" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0%" stop-color="' + accent + '" stop-opacity="0.35"/>' +
+        '<stop offset="100%" stop-color="' + accent + '" stop-opacity="0.04"/>' +
+      '</linearGradient>' +
+      '<clipPath id="ec"><rect x="' + PAD.left + '" y="' + PAD.top + '" width="' + gW + '" height="' + gH + '"/></clipPath>' +
+    '</defs>' +
+    yAxisSvg +
+    xAxisSvg +
+    '<path d="' + areaD + '" fill="url(#eg)" clip-path="url(#ec)"/>' +
+    '<polyline points="' + linePoints + '" fill="none" stroke="' + accent + '" stroke-width="1.5"' +
+    ' stroke-linejoin="round" stroke-linecap="round" clip-path="url(#ec)"/>' +
+    '<line x1="' + PAD.left + '" y1="' + PAD.top + '" x2="' + PAD.left + '" y2="' + (PAD.top + gH) + '"' +
+    ' stroke="' + border + '" stroke-width="1"/>' +
+    '<line x1="' + PAD.left + '" y1="' + (PAD.top + gH) + '" x2="' + (PAD.left + gW) + '" y2="' + (PAD.top + gH) + '"' +
+    ' stroke="' + border + '" stroke-width="1"/>' +
+    wpSvg;
+}
+
+/* Patch updateRoute to call onRouteUpdated when done */
+const _baseUpdateRoute = updateRoute;
+updateRoute = async function() {
+  await _baseUpdateRoute.apply(this, arguments);
+  onRouteUpdated();
+};
+
 </script>
 
 </body>
