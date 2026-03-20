@@ -1916,6 +1916,7 @@ async function refreshOverlay(net) {
 (
   relation["route"="bicycle"]["network"="${net}"](${bbox});
   relation["type"="route"]["network"="${net}"](${bbox});
+  relation["type"="superroute"]["network"="${net}"](${bbox});
 )->.routes;
 .routes out body;
 rel(r.routes)->.subroutes;
@@ -1990,11 +1991,15 @@ out geom qt;`;
 // Derive base route name by stripping section suffixes.
 // Strips everything from the first " - " onwards, so both
 // "LF Kustroute - 08 - Noordwijk - Oost" → "LF Kustroute" and
-// "EUROVELO 12 - NORTH SEA CYCLE ROUTE - PART NEDERLAND WEST" → "EUROVELO 12"
-// produce the correct base name for cross-section filter matching.
+// Strips the geographic suffix from a route name, returning just the base route identity.
+// Normalises all dash separators (with or without surrounding spaces) to a canonical
+// " – " so that "F5 Fietssnelweg Antwerpen - Bergen", "F5 Fietssnelweg Antwerpen – Bergen"
+// and "F5 Fietssnelweg Antwerpen–Bergen" all yield the same base name.
 function baseRouteName(name) {
   if (!name) return null;
-  return name.replace(/\s*[-–]\s*.+$/, '').trim();
+  // Collapse any dash/en-dash with optional surrounding whitespace → " – "
+  const normalised = name.replace(/\s*[-–]\s*/g, ' – ');
+  return normalised.replace(/\s+–\s+.+$/, '').trim();
 }
 
 // Returns { line1, line2 } for label display.
@@ -2010,7 +2015,8 @@ function baseRouteName(name) {
 //   string     → use that string as line2 unconditionally
 function labelLines(name, subtitleOverride) {
   if (!name) return { line1: name, line2: null };
-  const parts = name.split(/\s+[-–]\s+/);
+  const normalised = name.replace(/\s+[-–]\s+/g, ' – ');
+  const parts = normalised.split(' – ');
   const line1  = parts[0].trim();
   if (subtitleOverride === null) return { line1, line2: null };
   if (subtitleOverride)          return { line1, line2: subtitleOverride };
