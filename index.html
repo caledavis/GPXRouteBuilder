@@ -1912,7 +1912,12 @@ async function refreshOverlay(net) {
     const s  = bs - BUFFER, w = bw - BUFFER, n = bn + BUFFER, e = be + BUFFER;
     const bbox = `${s},${w},${n},${e}`;
 
-    const query = `[out:json][timeout:${TIMEOUT}];
+    // icn and ncn use superroute structures up to 3 levels deep.
+    // rcn and lcn are flat route relations with direct way members — the extra
+    // recursion is unnecessary and adds Overpass load for dense networks.
+    const useDeepQuery = (net === 'icn' || net === 'ncn');
+    const query = useDeepQuery
+      ? `[out:json][timeout:${TIMEOUT}];
 (
   relation["route"="bicycle"]["network"="${net}"](${bbox});
   relation["type"="route"]["network"="${net}"](${bbox});
@@ -1928,16 +1933,52 @@ rel(r.subroutes)->.subsubroutes;
   way(r.subroutes);
   way(r.subsubroutes);
 );
+out geom qt;`
+      : `[out:json][timeout:${TIMEOUT}];
+(
+  relation["route"="bicycle"]["network"="${net}"](${bbox});
+  relation["type"="route"]["network"="${net}"](${bbox});
+)->.routes;
+.routes out body;
+way(r.routes);
 out geom qt;`;
 
-    const resp = await fetch(OVERPASS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'data=' + encodeURIComponent(query),
-    });
+    // ── localStorage daily cache ──
+    // Key encodes network, bbox (2 dp) and today's date so stale data
+    // is automatically evicted the next day without manual housekeeping.
+    const today    = new Date().toISOString().slice(0, 10); // "YYYY-MM-DD"
+    const bboxKey  = [s, w, n, e].map(v => v.toFixed(2)).join(',');
+    const cacheKey = `overlay_cache:${net}:${bboxKey}:${today}`;
 
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    let data;
+    try {
+      const cached = localStorage.getItem(cacheKey);
+      if (cached) {
+        data = JSON.parse(cached);
+      }
+    } catch (_) { /* localStorage unavailable or corrupt — fall through to fetch */ }
+
+    if (!data) {
+      const resp = await fetch(OVERPASS_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'data=' + encodeURIComponent(query),
+      });
+
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      data = await resp.json();
+
+      // Persist to localStorage, evicting any stale entries for this network.
+      try {
+        // Remove old cache entries for this network before writing the new one
+        // so storage doesn't grow unboundedly across bbox changes.
+        const prefix = `overlay_cache:${net}:`;
+        Object.keys(localStorage)
+          .filter(k => k.startsWith(prefix) && k !== cacheKey)
+          .forEach(k => localStorage.removeItem(k));
+        localStorage.setItem(cacheKey, JSON.stringify(data));
+      } catch (_) { /* storage full or unavailable — silently skip */ }
+    }
 
     // Bail out if the overlay was disabled while we were waiting for the response
     if (!state.enabled) return;
@@ -2277,7 +2318,10 @@ function buildLayer(net, data) {
   // length, but only if the cell is not already taken by another label.
   if (cfg.showLabels && pendingLabels.length) {
     requestAnimationFrame(() => {
-      const CELL = 200; // px — minimum separation between any two labels
+      // Scale cell size with zoom: at low zoom (sparse routes) labels can be
+      // further apart; at high zoom (dense street-level view) pack them tighter.
+      const zoom = map.getZoom();
+      const CELL = Math.round(80 + (zoom - 10) * 12); // ~200px at z=20, ~80px at z=10
       const occupiedCells = new Set();
 
       function cellKey(latlng) {
