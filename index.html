@@ -1414,7 +1414,7 @@ Object.keys(NET_CFG).forEach(k => {
   OV[k] = {
     enabled: false, loading: false,
     layer: null, allAdded: [],
-    fetchedBbox: null, filteredName: null,
+    fetchedBbox: null, innerBbox: null, filteredName: null,
     // Cache: survives toggle-off so re-enabling skips the Overpass round-trip
     cachedLayer: null, cachedBbox: null,
   };
@@ -1654,12 +1654,18 @@ function checkOverlayBboxes() {
   Object.keys(NET_CFG).forEach(k => {
     if (!OV[k].enabled || OV[k].loading) return;
     const fb = OV[k].fetchedBbox;
-    // Only refetch when the viewport leaves the buffered bbox.
-    // A filter being active is NOT a reason to re-fetch on every moveend —
-    // the existing layer already has the full data for the cached bbox.
-    if (!fb ||
-        b.getSouth() < fb.s || b.getWest()  < fb.w ||
-        b.getNorth() > fb.n || b.getEast()  > fb.e) {
+    // When a route filter is active the user may be following a specific route
+    // beyond the currently loaded area, so refetch whenever the viewport moves
+    // outside the inner (un-buffered) viewport bbox that was used for the last
+    // fetch.  Without this, the continuation of a filtered route is not shown
+    // until the viewport leaves the full buffered bbox (up to 0.15° extra).
+    // For unfiltered overlays the normal buffered-bbox check is fine.
+    const useStrict = !!OV[k].filteredName;
+    const ib = OV[k].innerBbox; // un-buffered viewport at last fetch (strict check)
+    const checkBbox = useStrict ? ib : fb;
+    if (!checkBbox ||
+        b.getSouth() < checkBbox.s || b.getWest()  < checkBbox.w ||
+        b.getNorth() > checkBbox.n || b.getEast()  > checkBbox.e) {
       refreshOverlay(k);
     }
   });
@@ -1731,14 +1737,30 @@ let knoopEnabled = false;
 let knoopLayer   = null;
 let knoopFetchedBbox = null;
 let knoopLoading = false;
+let knoopCachedLayer = null;
+let knoopCachedBbox  = null;
 
 document.getElementById('knoop-toggle').addEventListener('click', () => {
   if (knoopLoading) return;
   knoopEnabled = !knoopEnabled;
   document.getElementById('knoop-toggle').classList.toggle('active', knoopEnabled);
   if (!knoopEnabled) {
+    // Remove from map but keep cache so toggle-on can restore instantly.
     if (knoopLayer) { map.removeLayer(knoopLayer); knoopLayer = null; }
     knoopFetchedBbox = null;
+    return;
+  }
+  // Toggle ON — check whether the cached layer covers the current viewport.
+  const b  = map.getBounds();
+  const cb = knoopCachedBbox;
+  const cacheValid = cb &&
+    b.getSouth() >= cb.s && b.getWest()  >= cb.w &&
+    b.getNorth() <= cb.n && b.getEast()  <= cb.e;
+  if (cacheValid && knoopCachedLayer) {
+    knoopCachedLayer.addTo(map);
+    knoopLayer       = knoopCachedLayer;
+    knoopFetchedBbox = knoopCachedBbox;
+    if (routeLayer) routeLayer.bringToFront();
     return;
   }
   refreshKnooppunten();
@@ -1788,6 +1810,9 @@ out body qt;`;
     if (knoopLayer) map.removeLayer(knoopLayer);
     knoopLayer = group;
     knoopFetchedBbox = { s, w, n, e };
+    // Persist to cache so toggle-off/on restores instantly within the same area.
+    knoopCachedLayer = group;
+    knoopCachedBbox  = { s, w, n, e };
     group.addTo(map);
     if (routeLayer) routeLayer.bringToFront();
   } catch (err) {
@@ -1839,7 +1864,7 @@ function toggleOverlay(net) {
     // Remove the live layer from the map but keep cachedLayer/cachedBbox intact
     // so a subsequent toggle-on can restore instantly without a network fetch.
     state.allAdded.forEach(lg => { try { map.removeLayer(lg); } catch(_) {} });
-    state.allAdded = []; state.layer = null; state.fetchedBbox = null;
+    state.allAdded = []; state.layer = null; state.fetchedBbox = null; state.innerBbox = null;
     // Preserve filteredName so it is reapplied if the user re-enables.
     updateShowAllBadge();
     return;
@@ -1859,6 +1884,8 @@ function toggleOverlay(net) {
     state.layer       = state.cachedLayer;
     state.fetchedBbox = state.cachedBbox;
     if (state.filteredName) applyRouteFilter(net, state.filteredName);
+    // Re-apply names visibility so route labels match the current setting.
+    applyNamesVisibility();
     if (routeLayer) routeLayer.bringToFront();
     return;
   }
@@ -1878,9 +1905,9 @@ async function refreshOverlay(net) {
     const BUFFER  = 0.15;
     // Dense networks (rcn, lcn) need more headroom; icn/ncn are sparse enough for 30 s
     const TIMEOUT = (net === 'rcn' || net === 'lcn') ? 60 : 30;
-    const b = map.getBounds();
-    const s = b.getSouth() - BUFFER, w = b.getWest()  - BUFFER;
-    const n = b.getNorth() + BUFFER, e = b.getEast()  + BUFFER;
+    const b  = map.getBounds();
+    const bs = b.getSouth(), bw = b.getWest(), bn = b.getNorth(), be = b.getEast();
+    const s  = bs - BUFFER, w = bw - BUFFER, n = bn + BUFFER, e = be + BUFFER;
     const bbox = `${s},${w},${n},${e}`;
 
     const query = `[out:json][timeout:${TIMEOUT}];
@@ -1923,17 +1950,24 @@ out geom qt;`;
     state.allAdded    = [newLg];
     state.layer       = newLg;
     state.fetchedBbox = { s, w, n, e };
+    // Store the un-buffered viewport bbox for the strict filter check
+    state.innerBbox   = { s: bs, w: bw, n: bn, e: be };
     // Persist to cache so toggle-off/on is instant while the viewport stays put
     state.cachedLayer = newLg;
     state.cachedBbox  = { s, w, n, e };
 
-    if (state.filteredName) applyRouteFilter(net, state.filteredName);
     if (routeLayer) routeLayer.bringToFront();
 
-    // Wait for the browser to paint the SVG paths before hiding the spinner.
-    // Two rAF calls: the first lets Leaflet's SVG renderer schedule _update(),
-    // the second fires after that paint has landed.
+    // Wait for the browser to paint the SVG paths before hiding the spinner
+    // and before applying the filter.  Two rAF calls: the first lets Leaflet's
+    // SVG renderer schedule _update() and create the <path> elements; the
+    // second fires after that paint has landed so setStyle() can find _path.
+    // applyRouteFilter must run AFTER this point — if it runs before the SVG
+    // elements exist, setStyle({opacity:0}) is a no-op and filtered-out routes
+    // remain visible on freshly fetched data.
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+    if (state.filteredName) applyRouteFilter(net, state.filteredName);
 
   } catch (err) {
     console.warn('Overlay fetch failed for', net, err);
@@ -1944,15 +1978,17 @@ out geom qt;`;
 }
 
 // Derive base route name by stripping section suffixes.
-// e.g. "LF Kustroute - 08 - Noordwijk - Oost" → "LF Kustroute"
-// Strips everything from the first occurrence of " - <digits>" onwards.
+// Strips everything from the first " - " onwards, so both
+// "LF Kustroute - 08 - Noordwijk - Oost" → "LF Kustroute" and
+// "EUROVELO 12 - NORTH SEA CYCLE ROUTE - PART NEDERLAND WEST" → "EUROVELO 12"
+// produce the correct base name for cross-section filter matching.
 function baseRouteName(name) {
   if (!name) return null;
-  return name.replace(/\s*[-–]\s*\d+.*$/, '').trim();
+  return name.replace(/\s*[-–]\s*.+$/, '').trim();
 }
 
 function buildLayer(net, data) {
-  const cfg   = NET_CFG[net];
+  const cfg       = NET_CFG[net];
   const group = L.layerGroup();
 
   // Way geometry is embedded via "out geom qt"
@@ -2026,6 +2062,34 @@ function buildLayer(net, data) {
           L.DomEvent.stopPropagation(e);
           L.DomEvent.preventDefault(e);
           openRouteCtxMenu(e.originalEvent.clientX, e.originalEvent.clientY, net, relId, routeName);
+        });
+
+        // ── Hover emphasis: thicken every visible segment sharing the same
+        //   base route name — same matching logic as applyRouteFilter.
+        //   We set stroke-width directly on the SVG element rather than calling
+        //   setStyle(), because setStyle() triggers a Leaflet redraw which fires
+        //   a spurious mouseout, creating a feedback loop that breaks rendering.
+        hit.on('mouseover', () => {
+          const baseName = baseRouteName(routeName);
+          Object.values(relationPolys).forEach(({ name, polys: rPolys }) => {
+            if (baseName && baseRouteName(name) !== baseName) return;
+            rPolys.forEach(p => {
+              if (p.options.opacity === 0) return; // filtered out — skip
+              const el = p.getElement();
+              if (el) el.setAttribute('stroke-width', String(cfg.weight + 2));
+            });
+          });
+        });
+        hit.on('mouseout', () => {
+          const baseName = baseRouteName(routeName);
+          Object.values(relationPolys).forEach(({ name, polys: rPolys }) => {
+            if (baseName && baseRouteName(name) !== baseName) return;
+            rPolys.forEach(p => {
+              if (p.options.opacity === 0) return;
+              const el = p.getElement();
+              if (el) el.setAttribute('stroke-width', String(cfg.weight));
+            });
+          });
         });
 
         // ── Touch long-press (iPad / iPhone) ──
