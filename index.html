@@ -1184,6 +1184,22 @@
     box-shadow: 0 1px 4px rgba(0,0,0,0.2);
     white-space: nowrap;
     line-height: 1;
+    cursor: pointer;
+  }
+  /* Knooppunt that has been added as a waypoint — slightly larger, bolder border */
+  .knoop-wp {
+    width: 26px; height: 26px; border-width: 3px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    cursor: grab;
+  }
+  /* Knooppunt circle badge inside the waypoints sidebar list */
+  .knoop-sym-badge {
+    width: 20px; height: 20px; border-radius: 50%;
+    border: 2px solid #007d00; background: white;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px; font-weight: 700;
+    line-height: 1; flex-shrink: 0;
   }
 
   /* ── Map marker context menu ── */
@@ -1941,17 +1957,24 @@ out body qt;`;
     const group = L.layerGroup();
     (data.elements || []).forEach(el => {
       if (el.type !== 'node') return;
-      const ref = el.tags?.rcn_ref || el.tags?.lcn_ref || '?';
+      const ref   = el.tags?.rcn_ref || el.tags?.lcn_ref || '?';
       const color = el.tags?.rcn_ref ? '#007d00' : '#bb00bb';
-      L.marker([el.lat, el.lon], {
-        interactive: false,
+      const km = L.marker([el.lat, el.lon], {
+        interactive: true,
         icon: L.divIcon({
           className: '',
           html: `<div class="knoop-marker" style="border-color:${color};color:${color}">${escapeHtml(ref)}</div>`,
           iconSize: [22, 22], iconAnchor: [11, 11],
         }),
         zIndexOffset: -100,
-      }).addTo(group);
+      });
+      km.on('click', e => {
+        L.DomEvent.stopPropagation(e);
+        suppressMapClick = true;
+        setTimeout(() => { suppressMapClick = false; }, 300);
+        addKnooppuntWaypoint(el.lat, el.lon, ref, color);
+      });
+      km.addTo(group);
     });
 
     if (knoopLayer) map.removeLayer(knoopLayer);
@@ -2356,7 +2379,46 @@ function createIcon(i, total, sym) {
   });
 }
 function refreshIcons() {
-  waypoints.forEach((wp, i) => wp.marker.setIcon(createIcon(i, waypoints.length, wp.sym)));
+  waypoints.forEach((wp, i) => {
+    const icon = wp.sym === 'knoop'
+      ? createKnoopWaypointIcon(wp.knoopRef || '?', wp.knoopColor || '#007d00')
+      : createIcon(i, waypoints.length, wp.sym);
+    wp.marker.setIcon(icon);
+  });
+}
+
+/* ── Knooppunt waypoint helpers ── */
+function createKnoopWaypointIcon(ref, color) {
+  return L.divIcon({
+    className: '',
+    html: `<div class="knoop-marker knoop-wp" style="border-color:${color};color:${color}">${escapeHtml(String(ref))}</div>`,
+    iconSize: [26, 26], iconAnchor: [13, 13],
+  });
+}
+
+/* Return the correct GPX <sym> value for a waypoint, applying position-based
+   flag colours (green for first, red for last) for the full route. */
+function gpxSym(wp, globalIdx, totalWps) {
+  if (wp.sym === 'knoop')     return 'Dot';
+  if (wp.sym === 'Residence') return 'Residence';
+  if (globalIdx === 0)                return 'Flag, Green';
+  if (globalIdx === totalWps - 1)     return 'Flag, Red';
+  return 'Flag, Blue';
+}
+
+/* Add a knooppunt node as the next waypoint in the route. */
+function addKnooppuntWaypoint(lat, lng, ref, color) {
+  const idx    = waypoints.length;
+  const marker = L.marker([lat, lng], {
+    draggable: true,
+    icon: createKnoopWaypointIcon(ref, color),
+  }).addTo(map);
+  attachMarkerEvents(marker);
+  waypoints.push({ lat, lng, name: `Knp ${ref}`, sym: 'knoop', knoopRef: ref, knoopColor: color, marker });
+  newestIndex = waypoints.length - 1;
+  invalidateSegments([waypoints.length - 2]);
+  refreshIcons();
+  updateAll();
 }
 
 /* ── Marker context menu ── */
@@ -2371,9 +2433,14 @@ function openCtxMenu(x, y, i) {
   const nameInput = document.getElementById('ctx-name-input');
   nameInput.value = wp.name || `Point ${i + 1}`;
 
+  const isKnoop = wp.sym === 'knoop';
   const isHouse = wp.sym === 'Residence';
-  document.getElementById('ctx-icon-svg').innerHTML = isHouse ? svgFlag('#2563eb') : svgHouse('#ca8a04');
-  document.getElementById('ctx-icon-label').textContent = isHouse ? 'Change to Flag' : 'Change to House';
+  // Hide the flag↔house toggle entirely for knooppunt waypoints
+  document.getElementById('ctx-icon').style.display = isKnoop ? 'none' : '';
+  if (!isKnoop) {
+    document.getElementById('ctx-icon-svg').innerHTML = isHouse ? svgFlag('#2563eb') : svgHouse('#ca8a04');
+    document.getElementById('ctx-icon-label').textContent = isHouse ? 'Change to Flag' : 'Change to House';
+  }
 
   // Segment split option
   const splitBtn     = document.getElementById('ctx-split-segment');
@@ -2441,6 +2508,7 @@ ctxNameInput.addEventListener('mousedown', e => e.stopPropagation());
 document.getElementById('ctx-icon').addEventListener('click', () => {
   if (ctxIdx < 0) return;
   const i = ctxIdx;
+  if (waypoints[i].sym === 'knoop') return;  // knooppunten can't be toggled
   closeCtxMenu();
   waypoints[i].sym = waypoints[i].sym === 'Residence' ? 'Flag, Blue' : 'Residence';
   refreshIcons();
@@ -2484,7 +2552,15 @@ function attachMarkerEvents(marker) {
     const i = waypoints.findIndex(w => w.marker === marker);
     if (i >= 0) {
       waypoints[i].lat = p.lat; waypoints[i].lng = p.lng;
+      // A moved knooppunt is no longer at its junction — demote to a regular waypoint
+      if (waypoints[i].sym === 'knoop') {
+        waypoints[i].sym       = 'Flag, Blue';
+        waypoints[i].name      = `Point ${i + 1}`;
+        waypoints[i].knoopRef   = undefined;
+        waypoints[i].knoopColor = undefined;
+      }
       invalidateSegments([i - 1, i]);
+      refreshIcons();
       updateAll();
     }
   });
@@ -3024,23 +3100,35 @@ function renderSidebar() {
   });
 
   function wpItemHtml(wp, i) {
+    const isKnoop = wp.sym === 'knoop';
     const isHouse = wp.sym === 'Residence';
-    let symClass, symSvg;
-    if (isHouse) {
-      if (i === 0)          { symClass = 'flag-first'; symSvg = svgHouse('#16a34a'); }
-      else if (i === count-1){ symClass = 'flag-last';  symSvg = svgHouse('#dc2626'); }
-      else                  { symClass = 'house';       symSvg = svgHouse('#ca8a04'); }
-    } else if (i === 0) {
-      symClass = 'flag-first'; symSvg = svgFlag('#16a34a');
-    } else if (i === count - 1) {
-      symClass = 'flag-last';  symSvg = svgFlag('#dc2626');
+    let symEl;
+    if (isKnoop) {
+      const ref   = wp.knoopRef || '?';
+      const color = wp.knoopColor || '#007d00';
+      // Non-interactive circle badge — knooppunt icon can't be toggled to flag/house
+      symEl = `<span class="wp-sym-btn" style="display:flex;align-items:center;justify-content:center;cursor:default;" data-index="${i}">
+        <span class="knoop-sym-badge" style="border-color:${color};color:${color}">${escapeHtml(String(ref))}</span>
+      </span>`;
     } else {
-      symClass = 'flag-mid';   symSvg = svgFlag('#2563eb');
+      let symClass, symSvg;
+      if (isHouse) {
+        if (i === 0)           { symClass = 'flag-first'; symSvg = svgHouse('#16a34a'); }
+        else if (i === count-1){ symClass = 'flag-last';  symSvg = svgHouse('#dc2626'); }
+        else                   { symClass = 'house';      symSvg = svgHouse('#ca8a04'); }
+      } else if (i === 0) {
+        symClass = 'flag-first'; symSvg = svgFlag('#16a34a');
+      } else if (i === count - 1) {
+        symClass = 'flag-last';  symSvg = svgFlag('#dc2626');
+      } else {
+        symClass = 'flag-mid';   symSvg = svgFlag('#2563eb');
+      }
+      symEl = `<button class="wp-sym-btn ${symClass}" data-index="${i}" title="Change waypoint icon">${symSvg}</button>`;
     }
     return `
     <div class="waypoint-item${i === selectedIndex ? ' selected' : ''}${i === newestIndex ? ' newest' : ''}" data-index="${i}">
       <div class="wp-drag" title="Drag to reorder"><span></span><span></span><span></span></div>
-      <button class="wp-sym-btn ${symClass}" data-index="${i}" title="Change waypoint icon">${symSvg}</button>
+      ${symEl}
       <div class="wp-info">
         <input class="wp-name-input" value="${escapeHtml(wp.name)}" data-index="${i}" placeholder="Point name…">
       </div>
@@ -3091,11 +3179,12 @@ function renderSidebar() {
   });
   list.innerHTML = html;
 
-  // Icon picker — toggle between Flag and House
+  // Icon picker — toggle between Flag and House (skip knooppunt waypoints)
   list.querySelectorAll('.wp-sym-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const i = +btn.dataset.index;
+      if (waypoints[i]?.sym === 'knoop') return;
       waypoints[i].sym = waypoints[i].sym === 'Residence' ? 'Flag, Blue' : 'Residence';
       refreshIcons();
       renderSidebar();
@@ -3360,13 +3449,16 @@ function buildGpxFiles() {
   const total = waypoints.length;
   const pad   = n => String(n).padStart(2, '0');
 
+  // Annotate each waypoint with the correct GPX sym based on global position
+  const annotated = waypoints.map((wp, i) => ({ ...wp, _gpxSym: gpxSym(wp, i, total) }));
+
   if (segments.length <= 1) {
     // Single segment — original behaviour, use route name as base
     if (total <= MAX_PER_FILE)
-      return [{ filename: sanitize(base) + '.gpx', content: gpxXml(base, now, waypoints) }];
+      return [{ filename: sanitize(base) + '.gpx', content: gpxXml(base, now, annotated) }];
     const numFiles = Math.ceil(total / MAX_PER_FILE);
     return Array.from({ length: numFiles }, (_, f) => {
-      const chunk    = waypoints.slice(f * MAX_PER_FILE, (f + 1) * MAX_PER_FILE);
+      const chunk    = annotated.slice(f * MAX_PER_FILE, (f + 1) * MAX_PER_FILE);
       const partName = `${base}_Part${f + 1}of${numFiles}`;
       const filename = `${sanitize(base)}_Part${pad(f + 1)}of${pad(numFiles)}.gpx`;
       return { filename, content: gpxXml(partName, now, chunk) };
@@ -3379,7 +3471,7 @@ function buildGpxFiles() {
     const start    = seg.startIndex;
     // Include the shared boundary waypoint (last of this segment = first of next)
     const end      = sIdx < segments.length - 1 ? segments[sIdx + 1].startIndex : total - 1;
-    const segWps   = waypoints.slice(start, end + 1);
+    const segWps   = annotated.slice(start, end + 1);
     const segName  = seg.name || `Segment ${sIdx + 1}`;
 
     if (segWps.length <= MAX_PER_FILE) {
@@ -3399,7 +3491,7 @@ function buildGpxFiles() {
 
 function gpxXml(routeName, ts, pts) {
   const rtepts = pts.map(wp =>
-    `    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <name>${escapeXml(wp.name)}</name>\n      <sym>${escapeXml(wp.sym || 'Flag, Blue')}</sym>\n    </rtept>`
+    `    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <name>${escapeXml(wp.name)}</name>\n      <sym>${escapeXml(wp._gpxSym || wp.sym || 'Flag, Blue')}</sym>\n    </rtept>`
   ).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1"
@@ -3608,7 +3700,7 @@ function serialiseRoute() {
     name:        document.getElementById('route-name').value || 'My Route',
     savedAt:     Date.now(),
     snapEnabled: snapEnabled,
-    waypoints:   waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng, name: wp.name, sym: wp.sym || 'Flag, Blue' })),
+    waypoints:   waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng, name: wp.name, sym: wp.sym || 'Flag, Blue', knoopRef: wp.knoopRef, knoopColor: wp.knoopColor })),
     segments:    segments.map(s => ({ name: s.name, startIndex: s.startIndex })),
   };
 }
@@ -3627,13 +3719,14 @@ function deserialiseRoute(data) {
   document.getElementById('route-name').value = data.name || 'My Route';
 
   data.waypoints.forEach(wp => {
-    const idx    = waypoints.length;
-    const marker = L.marker([wp.lat, wp.lng], {
-      draggable: true,
-      icon: createIcon(idx, data.waypoints.length, wp.sym),
-    }).addTo(map);
+    const idx  = waypoints.length;
+    const icon = wp.sym === 'knoop'
+      ? createKnoopWaypointIcon(wp.knoopRef || '?', wp.knoopColor || '#007d00')
+      : createIcon(idx, data.waypoints.length, wp.sym);
+    const marker = L.marker([wp.lat, wp.lng], { draggable: true, icon }).addTo(map);
     attachMarkerEvents(marker);
-    waypoints.push({ lat: wp.lat, lng: wp.lng, name: wp.name, sym: wp.sym || 'Flag, Blue', marker });
+    waypoints.push({ lat: wp.lat, lng: wp.lng, name: wp.name, sym: wp.sym || 'Flag, Blue',
+      knoopRef: wp.knoopRef, knoopColor: wp.knoopColor, marker });
   });
 
   refreshIcons();
