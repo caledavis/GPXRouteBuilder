@@ -475,6 +475,38 @@
     display: flex; align-items: center; gap: 6px;
   }
 
+  /* ── User-defined segment headers ── */
+  .seg-header {
+    display: flex; align-items: center; gap: 5px;
+    padding: 10px 4px 5px; margin-top: 6px;
+    border-top: 2px solid var(--accent2);
+  }
+  .seg-header.seg-header-first { margin-top: 0; border-top: none; padding-top: 4px; }
+  .seg-label-icon { color: var(--accent2); font-size: 9px; flex-shrink: 0; }
+  .seg-name-input {
+    flex: 1; min-width: 0; background: transparent; border: none;
+    color: var(--accent2); font-family: var(--mono); font-size: 10px;
+    font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+    outline: none; cursor: pointer; padding: 0;
+  }
+  .seg-name-input:focus { border-bottom: 1px solid var(--accent2); cursor: text; }
+  .seg-remove-btn {
+    background: transparent; border: none; color: var(--text-dim);
+    cursor: pointer; font-size: 10px; padding: 2px 4px;
+    border-radius: 4px; flex-shrink: 0; line-height: 1;
+  }
+  .seg-remove-btn:hover { color: var(--danger); background: rgba(220,38,38,0.08); }
+
+  /* ── Boundary echo: shared waypoint shown at top of new segment ── */
+  .wp-boundary-echo {
+    opacity: 0.55; border-color: transparent !important;
+    background: transparent !important; cursor: default !important;
+    padding-left: 10px;
+  }
+  .wp-boundary-echo:hover { border-color: transparent !important; background: transparent !important; }
+  .wp-echo-icon { color: var(--text-dim); font-size: 10px; flex-shrink: 0; margin-right: 2px; }
+  .wp-echo-name { font-style: italic; font-size: 11px; color: var(--text-dim); }
+
   .wp-info { flex: 1; min-width: 0; }
   .wp-name-input {
     background: transparent; border: none; color: var(--text);
@@ -541,6 +573,10 @@
     cursor: pointer; text-align: center; transition: all 0.2s; flex-shrink: 0;
   }
   .add-btn:hover { background: rgba(22,163,74,0.2); }
+  #clear-btn {
+    background: rgba(220,38,38,0.07); border-color: rgba(220,38,38,0.35); color: var(--danger);
+  }
+  #clear-btn:hover { background: rgba(220,38,38,0.15); border-color: rgba(220,38,38,0.6); }
 
   .address-search-row {
     display: flex; gap: 6px; align-items: center;
@@ -1264,6 +1300,17 @@
     min-height: 0;
   }
   .elev-body svg { width: 100%; height: 100%; display: block; overflow: visible; }
+  .elev-body svg.elev-zoomed         { cursor: grab;     }
+  .elev-body svg.elev-zoomed.elev-dragging { cursor: grabbing; }
+  #elev-zoom-reset {
+    position: absolute; top: 5px; right: 14px; z-index: 2;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 5px; color: var(--text-dim); cursor: pointer;
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.05em;
+    padding: 3px 7px; display: none; transition: all 0.15s;
+  }
+  #elev-zoom-reset:hover { border-color: var(--accent2); color: var(--accent2); }
+  #elev-zoom-reset.visible { display: block; }
   .elev-empty {
     position: absolute; inset: 0;
     display: flex; align-items: center; justify-content: center;
@@ -1455,6 +1502,7 @@
   </div>
   <div class="elev-body" id="elev-body">
     <div class="elev-empty" id="elev-empty">Enable snapping and add waypoints to see elevation</div>
+    <button id="elev-zoom-reset" title="Reset zoom · or double-click graph">⊘ reset zoom</button>
     <svg id="elev-svg" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
 </div>
@@ -1464,6 +1512,10 @@
   <input class="ctx-name-input" id="ctx-name-input" type="text" placeholder="Waypoint name…" autocomplete="off" spellcheck="false">
   <button class="ctx-menu-item" id="ctx-icon">
     <span class="ctx-menu-icon" id="ctx-icon-svg"></span> <span id="ctx-icon-label">Change to House</span>
+  </button>
+  <div class="ctx-menu-divider" id="ctx-split-divider"></div>
+  <button class="ctx-menu-item" id="ctx-split-segment">
+    <span class="ctx-menu-icon">✂</span> <span id="ctx-split-label">Split Segment Here</span>
   </button>
   <div class="ctx-menu-divider"></div>
   <button class="ctx-menu-item danger" id="ctx-delete">
@@ -1497,6 +1549,7 @@ const NET_CFG = {
 };
 
 let waypoints     = [];
+let segments      = [{ name: 'Segment 1', startIndex: 0 }];
 let routeLayer    = null;
 let snapEnabled   = false;
 let selectedIndex = -1;
@@ -1927,20 +1980,28 @@ function applyNamesVisibility() {
       // ── Permanent label markers ──
       if (sublayer._labelFor !== undefined) {
         const el = sublayer.getElement?.();
-        if (el) el.style.display = showRouteNames ? '' : 'none';
+        if (!el) return;
+        // Respect any active route filter: only show labels for the isolated route
+        const passesFilter = !state.filteredName ||
+          baseRouteName(sublayer._labelFor) === state.filteredName;
+        el.style.display = (showRouteNames && passesFilter) ? '' : 'none';
         return;
       }
       // ── Hover tooltips on hit polys ──
       if (sublayer._visPoly !== undefined) {
         const name = sublayer._visPoly?._tooltipContent;
         if (!name) return;
-        if (showRouteNames && !sublayer.getTooltip()) {
+        // Respect any active route filter here too
+        const passesFilter = !state.filteredName ||
+          baseRouteName(name) === state.filteredName;
+        const shouldShow = showRouteNames && passesFilter;
+        if (shouldShow && !sublayer.getTooltip()) {
           sublayer.bindTooltip(name, {
             permanent: false, sticky: true,
             direction: 'top', offset: [0, -6],
             className: 'route-label',
           });
-        } else if (!showRouteNames && sublayer.getTooltip()) {
+        } else if (!shouldShow && sublayer.getTooltip()) {
           sublayer.unbindTooltip();
         }
       }
@@ -2314,6 +2375,23 @@ function openCtxMenu(x, y, i) {
   document.getElementById('ctx-icon-svg').innerHTML = isHouse ? svgFlag('#2563eb') : svgHouse('#ca8a04');
   document.getElementById('ctx-icon-label').textContent = isHouse ? 'Change to Flag' : 'Change to House';
 
+  // Segment split option
+  const splitBtn     = document.getElementById('ctx-split-segment');
+  const splitDivider = document.getElementById('ctx-split-divider');
+  const existingSegIdx = segments.findIndex((s, si) => si > 0 && s.startIndex === i);
+  if (i === 0) {
+    splitBtn.style.display     = 'none';
+    splitDivider.style.display = 'none';
+  } else if (existingSegIdx > 0) {
+    document.getElementById('ctx-split-label').textContent = 'Remove Segment Split';
+    splitBtn.style.display     = '';
+    splitDivider.style.display = '';
+  } else {
+    document.getElementById('ctx-split-label').textContent = 'Split Segment Here';
+    splitBtn.style.display     = '';
+    splitDivider.style.display = '';
+  }
+
   // Position — keep menu on screen
   ctxMenu.style.left = '0px'; ctxMenu.style.top = '0px';
   ctxMenu.classList.add('open');
@@ -2370,6 +2448,18 @@ document.getElementById('ctx-icon').addEventListener('click', () => {
   updateGpxPreview();
   if (elevOpen) drawElevation();
   triggerAutosave();
+});
+
+document.getElementById('ctx-split-segment').addEventListener('click', () => {
+  if (ctxIdx < 0) return;
+  const i = ctxIdx;
+  closeCtxMenu();
+  const existingIdx = segments.findIndex((s, si) => si > 0 && s.startIndex === i);
+  if (existingIdx > 0) {
+    removeSegmentSplit(existingIdx);
+  } else {
+    splitSegmentAt(i);
+  }
 });
 
 document.getElementById('ctx-delete').addEventListener('click', () => {
@@ -2434,6 +2524,7 @@ function removeWaypoint(i) {
   map.removeLayer(waypoints[i].marker);
   segmentCache.splice(i, 1);   // remove cache entry BEFORE splicing waypoints
   waypoints.splice(i, 1);
+  updateSegmentsAfterRemove(i);
   invalidateSegments([i - 1, i]);
   if (selectedIndex >= waypoints.length) selectedIndex = waypoints.length - 1;
   newestIndex = -1;
@@ -2558,8 +2649,8 @@ async function updateRoute() {
     if (gen !== routeGeneration) return;  // stale — do NOT touch the indicator
 
     // Build segment list from cache and draw
-    const segments = segmentCache.map((latlngs, i) => ({ coords: latlngs, segIdx: i }));
-    drawSegments(segments, true);
+    const routeSegments = segmentCache.map((latlngs, i) => ({ coords: latlngs, segIdx: i }));
+    drawSegments(routeSegments, true);
     setRoutingIndicator(false);  // only reached by the current generation
 
     // Update distance from cached segments
@@ -2789,6 +2880,7 @@ function insertWaypoint(insertAfterIndex, lat, lng) {
   attachMarkerEvents(marker);
 
   waypoints.splice(newIdx, 0, { lat, lng, name, sym: 'Flag, Blue', marker });
+  updateSegmentsAfterInsert(newIdx);
   newestIndex = newIdx;  // scroll the list to show the inserted point
 
   // Insert a null slot in the cache at newIdx, then dirty the two new segments
@@ -2848,6 +2940,70 @@ function svgHouse(color) {
   </svg>`;
 }
 
+/* ── Segment helpers ── */
+function splitSegmentAt(i) {
+  if (i <= 0 || i >= waypoints.length) return;
+  if (segments.some((s, si) => si > 0 && s.startIndex === i)) return;
+  let insertAfter = 0;
+  for (let s = 0; s < segments.length; s++) {
+    if (segments[s].startIndex <= i) insertAfter = s;
+  }
+  segments.splice(insertAfter + 1, 0, { name: `Segment ${segments.length + 1}`, startIndex: i });
+  renderSidebar();
+  updateGpxPreview();
+  triggerAutosave();
+}
+
+function removeSegmentSplit(segIdx) {
+  if (segIdx <= 0 || segIdx >= segments.length) return;
+  segments.splice(segIdx, 1);
+  renderSidebar();
+  updateGpxPreview();
+  triggerAutosave();
+}
+
+function updateSegmentsAfterRemove(removedIdx) {
+  segments = segments.map((s, sIdx) => {
+    if (sIdx === 0) return s;
+    if (s.startIndex > removedIdx) return { ...s, startIndex: s.startIndex - 1 };
+    return s;  // startIndex === removedIdx: stays (now points to next wp)
+  });
+  const seen = new Set([0]);
+  segments = segments.filter((s, sIdx) => {
+    if (sIdx === 0) return true;
+    if (s.startIndex >= waypoints.length) return false;
+    if (seen.has(s.startIndex)) return false;
+    seen.add(s.startIndex);
+    return true;
+  });
+}
+
+function updateSegmentsAfterInsert(insertedIdx) {
+  segments = segments.map((s, sIdx) => {
+    if (sIdx === 0) return s;
+    if (s.startIndex >= insertedIdx) return { ...s, startIndex: s.startIndex + 1 };
+    return s;
+  });
+}
+
+function updateSegmentsAfterDragReorder(from, to) {
+  if (from === to) return;
+  segments = segments.map((s, sIdx) => {
+    if (sIdx === 0) return s;
+    let idx = s.startIndex;
+    if (from < to) {
+      if (idx === from)             idx = to;
+      else if (idx > from && idx <= to) idx--;
+    } else {
+      if (idx === from)             idx = to;
+      else if (idx >= to && idx < from) idx++;
+    }
+    return { ...s, startIndex: idx };
+  });
+  segments.sort((a, b) => a.startIndex - b.startIndex);
+  segments = segments.filter((s, i) => i === 0 || s.startIndex !== segments[i - 1].startIndex);
+}
+
 /* ── Sidebar ── */
 function renderSidebar() {
   const list  = document.getElementById('waypoints-list');
@@ -2859,21 +3015,21 @@ function renderSidebar() {
     document.getElementById('split-badge').classList.remove('visible');
     return;
   }
-  const split    = count > MAX_PER_FILE;
-  const numFiles = split ? Math.ceil(count / MAX_PER_FILE) : 1;
-  let html = '';
-  waypoints.forEach((wp, i) => {
-    if (split && i % MAX_PER_FILE === 0) {
-      const f  = Math.floor(i / MAX_PER_FILE) + 1;
-      const to = Math.min(i + MAX_PER_FILE, count);
-      html += `<div class="segment-divider">✂ FILE ${f}/${numFiles} &nbsp;·&nbsp; pts ${i + 1}–${to}</div>`;
-    }
+  // Compute total GPX file count across all segments (for badge)
+  let totalFiles = 0;
+  segments.forEach((seg, sIdx) => {
+    const start   = seg.startIndex;
+    const end     = sIdx < segments.length - 1 ? segments[sIdx + 1].startIndex : count - 1;
+    totalFiles   += Math.ceil((end - start + 1) / MAX_PER_FILE);
+  });
+
+  function wpItemHtml(wp, i) {
     const isHouse = wp.sym === 'Residence';
     let symClass, symSvg;
     if (isHouse) {
-      if (i === 0)            { symClass = 'flag-first'; symSvg = svgHouse('#16a34a'); }
-      else if (i === count-1) { symClass = 'flag-last';  symSvg = svgHouse('#dc2626'); }
-      else                    { symClass = 'house';       symSvg = svgHouse('#ca8a04'); }
+      if (i === 0)          { symClass = 'flag-first'; symSvg = svgHouse('#16a34a'); }
+      else if (i === count-1){ symClass = 'flag-last';  symSvg = svgHouse('#dc2626'); }
+      else                  { symClass = 'house';       symSvg = svgHouse('#ca8a04'); }
     } else if (i === 0) {
       symClass = 'flag-first'; symSvg = svgFlag('#16a34a');
     } else if (i === count - 1) {
@@ -2881,7 +3037,7 @@ function renderSidebar() {
     } else {
       symClass = 'flag-mid';   symSvg = svgFlag('#2563eb');
     }
-    html += `
+    return `
     <div class="waypoint-item${i === selectedIndex ? ' selected' : ''}${i === newestIndex ? ' newest' : ''}" data-index="${i}">
       <div class="wp-drag" title="Drag to reorder"><span></span><span></span><span></span></div>
       <button class="wp-sym-btn ${symClass}" data-index="${i}" title="Change waypoint icon">${symSvg}</button>
@@ -2894,6 +3050,44 @@ function renderSidebar() {
         <button class="wp-btn"      title="Delete"    onclick="removeWaypoint(${i})">✕</button>
       </div>
     </div>`;
+  }
+
+  let html = '';
+  segments.forEach((seg, sIdx) => {
+    const isFirst  = sIdx === 0;
+    const start    = seg.startIndex;
+    const end      = sIdx < segments.length - 1 ? segments[sIdx + 1].startIndex : count - 1;
+    const segCount = end - start + 1;
+    const segFiles = Math.ceil(segCount / MAX_PER_FILE);
+    const segSplit = segCount > MAX_PER_FILE;
+
+    // Segment header
+    html += `<div class="seg-header${isFirst ? ' seg-header-first' : ''}" data-seg="${sIdx}">
+      <span class="seg-label-icon">◆</span>
+      <input class="seg-name-input" value="${escapeHtml(seg.name)}" data-seg="${sIdx}" placeholder="Segment name…">
+      ${!isFirst ? `<button class="seg-remove-btn" data-seg="${sIdx}" title="Remove this segment split">✕</button>` : ''}
+    </div>`;
+
+    // Boundary echo for non-first segments (shared waypoint shown read-only)
+    if (!isFirst) {
+      const bWp = waypoints[start];
+      html += `<div class="waypoint-item wp-boundary-echo" data-boundary-index="${start}">
+        <span class="wp-echo-icon">↩</span>
+        <div class="wp-info"><span class="wp-echo-name">${escapeHtml(bWp?.name || '')}</span></div>
+      </div>`;
+    }
+
+    // Waypoints for this segment (full interactive rows)
+    // First segment: 0..end; non-first: start+1..end (echo covers start)
+    const loopFrom = isFirst ? 0 : start + 1;
+    for (let i = loopFrom; i <= end; i++) {
+      const localIdx = i - start;
+      if (segSplit && localIdx > 0 && localIdx % MAX_PER_FILE === 0) {
+        const f = Math.floor(localIdx / MAX_PER_FILE) + 1;
+        html += `<div class="segment-divider">✂ PART ${f}/${segFiles}</div>`;
+      }
+      html += wpItemHtml(waypoints[i], i);
+    }
   });
   list.innerHTML = html;
 
@@ -2930,12 +3124,43 @@ function renderSidebar() {
     }
   }
 
+  // Segment name editing
+  list.querySelectorAll('.seg-name-input').forEach(inp => {
+    inp.addEventListener('input', e => {
+      segments[+e.target.dataset.seg].name = e.target.value;
+      updateGpxPreview();
+      triggerAutosave();
+    });
+    inp.addEventListener('click', e => e.stopPropagation());
+  });
+
+  // Remove segment split buttons
+  list.querySelectorAll('.seg-remove-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      removeSegmentSplit(+btn.dataset.seg);
+    });
+  });
+
+  // Boundary echo: click to select/fly-to the shared waypoint
+  list.querySelectorAll('.wp-boundary-echo').forEach(el => {
+    el.addEventListener('click', e => {
+      e.stopPropagation();
+      selectWaypoint(+el.dataset.boundaryIndex);
+    });
+  });
+
   list.querySelectorAll('.wp-name-input').forEach(inp => {
     inp.addEventListener('input', e => { waypoints[+e.target.dataset.index].name = e.target.value; updateGpxPreview(); if (elevOpen) drawElevation(); });
     inp.addEventListener('click', e => e.stopPropagation());
   });
-  list.querySelectorAll('.waypoint-item').forEach(el => {
+  list.querySelectorAll('.waypoint-item:not(.wp-boundary-echo)').forEach(el => {
     el.addEventListener('click', () => selectWaypoint(+el.dataset.index));
+    el.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      openCtxMenu(e.clientX, e.clientY, +el.dataset.index);
+    });
   });
 
   // ── Waypoint reorder via pointer events (works on mouse + iPad touch) ──
@@ -2945,7 +3170,7 @@ function renderSidebar() {
   let dropInsertAt  = null;
 
   function getInsertAt(clientY) {
-    const els = [...list.querySelectorAll('.waypoint-item:not(.dragging)')];
+    const els = [...list.querySelectorAll('.waypoint-item:not(.dragging):not(.wp-boundary-echo)')];
     if (!els.length) return 0;
     // Before first item
     if (clientY < els[0].getBoundingClientRect().top + els[0].offsetHeight / 2) return 0;
@@ -2964,7 +3189,7 @@ function renderSidebar() {
 
   function positionIndicator(insertAt) {
     if (!dropIndicator) return;
-    const els = [...list.querySelectorAll('.waypoint-item:not(.dragging)')];
+    const els = [...list.querySelectorAll('.waypoint-item:not(.dragging):not(.wp-boundary-echo)')];
     if (!els.length) return;
 
     // Find the element this indicator should appear before
@@ -3003,7 +3228,7 @@ function renderSidebar() {
     reorderClone.style.top = (clientY - 16) + 'px';
     const raw = getInsertAt(clientY);
     if (raw === dropInsertAt) return;
-    const items = [...list.querySelectorAll('.waypoint-item:not(.dragging)')];
+    const items = [...list.querySelectorAll('.waypoint-item:not(.dragging):not(.wp-boundary-echo)')];
     const before = new Map();
     items.forEach(el => { before.set(el, el.getBoundingClientRect().top); });
     dropInsertAt = raw;
@@ -3036,8 +3261,10 @@ function renderSidebar() {
     dropIndicator?.remove(); dropIndicator = null;
     reorderClone?.remove();  reorderClone  = null;
     if (insertAt !== reorderSrcIdx) {
+      const srcIdx = reorderSrcIdx;
       const [moved] = waypoints.splice(reorderSrcIdx, 1);
       waypoints.splice(insertAt, 0, moved);
+      updateSegmentsAfterDragReorder(srcIdx, insertAt);
       selectedIndex = insertAt;
       invalidateSegments([reorderSrcIdx - 1, reorderSrcIdx, insertAt - 1, insertAt]);
       resequenceNames();
@@ -3114,8 +3341,16 @@ function renderSidebar() {
   });
 
   const badge = document.getElementById('split-badge');
-  if (split) { badge.classList.add('visible'); document.getElementById('split-label').textContent = `${numFiles} FILES`; }
-  else badge.classList.remove('visible');
+  const showBadge = segments.length > 1 || totalFiles > 1;
+  if (showBadge) {
+    badge.classList.add('visible');
+    let label = '';
+    if (segments.length > 1) label += `${segments.length} SEGMENTS`;
+    if (totalFiles > 1)      label += (label ? ', ' : '') + `${totalFiles} FILES`;
+    document.getElementById('split-label').textContent = label;
+  } else {
+    badge.classList.remove('visible');
+  }
 }
 
 /* ── GPX build ── */
@@ -3123,16 +3358,43 @@ function buildGpxFiles() {
   const base  = (document.getElementById('route-name').value || 'My Route').trim();
   const now   = new Date().toISOString();
   const total = waypoints.length;
-  if (total <= MAX_PER_FILE)
-    return [{ filename: sanitize(base) + '.gpx', content: gpxXml(base, now, waypoints) }];
-  const numFiles = Math.ceil(total / MAX_PER_FILE);
-  return Array.from({ length: numFiles }, (_, f) => {
-    const chunk    = waypoints.slice(f * MAX_PER_FILE, (f + 1) * MAX_PER_FILE);
-    const pad      = n => String(n).padStart(2, '0');
-    const partName = `${base} (Part ${f + 1} of ${numFiles})`;
-    const filename = `${sanitize(base)}_part${pad(f + 1)}of${pad(numFiles)}.gpx`;
-    return { filename, content: gpxXml(partName, now, chunk) };
+  const pad   = n => String(n).padStart(2, '0');
+
+  if (segments.length <= 1) {
+    // Single segment — original behaviour, use route name as base
+    if (total <= MAX_PER_FILE)
+      return [{ filename: sanitize(base) + '.gpx', content: gpxXml(base, now, waypoints) }];
+    const numFiles = Math.ceil(total / MAX_PER_FILE);
+    return Array.from({ length: numFiles }, (_, f) => {
+      const chunk    = waypoints.slice(f * MAX_PER_FILE, (f + 1) * MAX_PER_FILE);
+      const partName = `${base}_Part${f + 1}of${numFiles}`;
+      const filename = `${sanitize(base)}_Part${pad(f + 1)}of${pad(numFiles)}.gpx`;
+      return { filename, content: gpxXml(partName, now, chunk) };
+    });
+  }
+
+  // Multi-segment: each segment gets its own file(s), named after the segment
+  const files = [];
+  segments.forEach((seg, sIdx) => {
+    const start    = seg.startIndex;
+    // Include the shared boundary waypoint (last of this segment = first of next)
+    const end      = sIdx < segments.length - 1 ? segments[sIdx + 1].startIndex : total - 1;
+    const segWps   = waypoints.slice(start, end + 1);
+    const segName  = seg.name || `Segment ${sIdx + 1}`;
+
+    if (segWps.length <= MAX_PER_FILE) {
+      files.push({ filename: sanitize(segName) + '.gpx', content: gpxXml(segName, now, segWps) });
+    } else {
+      const numParts = Math.ceil(segWps.length / MAX_PER_FILE);
+      for (let f = 0; f < numParts; f++) {
+        const chunk    = segWps.slice(f * MAX_PER_FILE, (f + 1) * MAX_PER_FILE);
+        const partName = `${segName}_Part${f + 1}of${numParts}`;
+        const filename = `${sanitize(segName)}_Part${pad(f + 1)}of${pad(numParts)}.gpx`;
+        files.push({ filename, content: gpxXml(partName, now, chunk) });
+      }
+    }
   });
+  return files;
 }
 
 function gpxXml(routeName, ts, pts) {
@@ -3168,8 +3430,8 @@ function updateGpxPreview() {
     return;
   }
   if (activeTab >= files.length) activeTab = 0;
-  tabsEl.innerHTML = files.map((_, i) =>
-    `<button class="preview-tab${i === activeTab ? ' active' : ''}" data-tab="${i}">Part ${i + 1}</button>`
+  tabsEl.innerHTML = files.map((f, i) =>
+    `<button class="preview-tab${i === activeTab ? ' active' : ''}" data-tab="${i}">${f.filename.replace(/\.gpx$/, '')}</button>`
   ).join('');
   tabsEl.querySelectorAll('.preview-tab').forEach(btn => {
     btn.addEventListener('click', () => { activeTab = +btn.dataset.tab; updateGpxPreview(); });
@@ -3192,6 +3454,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   if (!waypoints.length || !confirm('Remove all waypoints?')) return;
   waypoints.forEach(wp => map.removeLayer(wp.marker));
   waypoints = [];
+  segments  = [{ name: 'Segment 1', startIndex: 0 }];
   if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
   selectedIndex = -1;
   newestIndex   = -1;
@@ -3346,6 +3609,7 @@ function serialiseRoute() {
     savedAt:     Date.now(),
     snapEnabled: snapEnabled,
     waypoints:   waypoints.map(wp => ({ lat: wp.lat, lng: wp.lng, name: wp.name, sym: wp.sym || 'Flag, Blue' })),
+    segments:    segments.map(s => ({ name: s.name, startIndex: s.startIndex })),
   };
 }
 
@@ -3382,6 +3646,23 @@ function deserialiseRoute(data) {
     } catch(_) {}
   } else if (waypoints.length === 1) {
     map.setView([waypoints[0].lat, waypoints[0].lng], 14);
+  }
+
+  // Restore segments (or default to a single segment)
+  if (data.segments?.length) {
+    segments = data.segments.map(s => ({ name: s.name, startIndex: s.startIndex }));
+    segments[0].startIndex = 0;  // segment 0 always starts at 0
+    // Remove out-of-bounds or duplicate entries
+    const seen = new Set([0]);
+    segments = segments.filter((s, i) => {
+      if (i === 0) return true;
+      if (s.startIndex <= 0 || s.startIndex >= waypoints.length) return false;
+      if (seen.has(s.startIndex)) return false;
+      seen.add(s.startIndex);
+      return true;
+    });
+  } else {
+    segments = [{ name: 'Segment 1', startIndex: 0 }];
   }
 
   invalidateAllSegments();
@@ -3796,6 +4077,15 @@ function applyRouteFilter(net, filterName) {
       }
     });
   });
+  // Also show/hide permanent label markers for this network
+  state.layer.eachLayer(sublayer => {
+    if (sublayer._labelFor === undefined) return;
+    const el = sublayer.getElement?.();
+    if (!el) return;
+    const visible = !filterName || baseRouteName(sublayer._labelFor) === filterName;
+    el.style.display = (showRouteNames && visible) ? '' : 'none';
+  });
+
   state.filteredName = filterName || null;
   updateShowAllBadge();
 }
@@ -3842,6 +4132,9 @@ document.addEventListener('click', e => {
    ══════════════════════════════════════════════════════════════ */
 
 let elevOpen = false;
+let elevView = { xMin: 0, xMax: 1 };  // normalised [0,1] zoom window over the route distance
+
+const ELEV_PAD = { top: 18, right: 10, bottom: 22, left: 40 };
 
 const elevPanel  = document.getElementById('elev-panel');
 const elevBtn    = document.getElementById('elev-btn');
@@ -3864,6 +4157,146 @@ function setElevOpen(open) {
 elevBtn.addEventListener('click',    () => setElevOpen(!elevOpen));
 elevHeader.addEventListener('click', () => setElevOpen(!elevOpen));
 window.addEventListener('resize',    () => { if (elevOpen) drawElevation(); });
+
+/* ── Elevation graph zoom & pan ── */
+const elevZoomReset = document.getElementById('elev-zoom-reset');
+elevZoomReset.addEventListener('click', e => {
+  e.stopPropagation();
+  elevView = { xMin: 0, xMax: 1 };
+  drawElevation();
+});
+
+// Double-click on the graph to reset zoom
+elevSvg.addEventListener('dblclick', e => {
+  e.preventDefault();
+  elevView = { xMin: 0, xMax: 1 };
+  drawElevation();
+});
+
+// ── Mouse wheel zoom ──
+elevSvg.addEventListener('wheel', e => {
+  if (!elevOpen) return;
+  e.preventDefault();
+  const rect   = elevSvg.getBoundingClientRect();
+  const gLeft  = rect.left + ELEV_PAD.left;
+  const gRight = rect.right - ELEV_PAD.right;
+  const gWidthPx = gRight - gLeft;
+  if (gWidthPx <= 0) return;
+  // Mouse position as a fraction [0,1] of the graph width
+  const mouseT = Math.max(0, Math.min(1, (e.clientX - gLeft) / gWidthPx));
+  // Map to a position in the current view's normalised space
+  const span   = elevView.xMax - elevView.xMin;
+  const mouseN = elevView.xMin + mouseT * span;
+  // Zoom: pinch in/out, keeping the point under the cursor fixed
+  const factor = e.deltaY > 0 ? 1.25 : 1 / 1.25;
+  let newMin = mouseN - (mouseN - elevView.xMin) * factor;
+  let newMax = mouseN + (elevView.xMax - mouseN) * factor;
+  // Clamp to [0, 1] without changing the span beyond natural limits
+  newMin = Math.max(0, newMin);
+  newMax = Math.min(1, newMax);
+  // Enforce minimum zoom span (≥ 2% of total distance)
+  if (newMax - newMin < 0.02) {
+    const mid = (newMin + newMax) / 2;
+    newMin = mid - 0.01;
+    newMax = mid + 0.01;
+  }
+  elevView = { xMin: Math.max(0, newMin), xMax: Math.min(1, newMax) };
+  drawElevation();
+}, { passive: false });
+
+// ── Mouse drag pan ──
+let elevDragState = null;
+elevSvg.addEventListener('mousedown', e => {
+  if (e.button !== 0 || !elevOpen) return;
+  e.preventDefault();
+  elevDragState = { startX: e.clientX, xMin: elevView.xMin, xMax: elevView.xMax };
+  elevSvg.classList.add('elev-dragging');
+});
+window.addEventListener('mousemove', e => {
+  if (!elevDragState) return;
+  const rect     = elevSvg.getBoundingClientRect();
+  const gWidthPx = rect.width - ELEV_PAD.left - ELEV_PAD.right;
+  if (gWidthPx <= 0) return;
+  const span  = elevDragState.xMax - elevDragState.xMin;
+  const dNorm = -(e.clientX - elevDragState.startX) / gWidthPx * span;
+  let newMin  = elevDragState.xMin + dNorm;
+  let newMax  = elevDragState.xMax + dNorm;
+  // Clamp so we don't pan past the ends
+  if (newMin < 0)      { newMin = 0;        newMax = span; }
+  if (newMax > 1)      { newMax = 1;        newMin = 1 - span; }
+  elevView = { xMin: newMin, xMax: newMax };
+  drawElevation();
+});
+window.addEventListener('mouseup', () => {
+  if (elevDragState) { elevDragState = null; elevSvg.classList.remove('elev-dragging'); }
+});
+
+// ── Touch pan (single finger) ──
+let elevTouchState = null;
+elevSvg.addEventListener('touchstart', e => {
+  if (!elevOpen || e.touches.length !== 1) return;
+  e.preventDefault();
+  const t = e.touches[0];
+  elevTouchState = { startX: t.clientX, xMin: elevView.xMin, xMax: elevView.xMax };
+  elevSvg.classList.add('elev-dragging');
+}, { passive: false });
+elevSvg.addEventListener('touchmove', e => {
+  if (!elevTouchState || e.touches.length !== 1) return;
+  e.preventDefault();
+  const rect     = elevSvg.getBoundingClientRect();
+  const gWidthPx = rect.width - ELEV_PAD.left - ELEV_PAD.right;
+  if (gWidthPx <= 0) return;
+  const span  = elevTouchState.xMax - elevTouchState.xMin;
+  const dNorm = -(e.touches[0].clientX - elevTouchState.startX) / gWidthPx * span;
+  let newMin  = elevTouchState.xMin + dNorm;
+  let newMax  = elevTouchState.xMax + dNorm;
+  if (newMin < 0)  { newMin = 0;    newMax = span; }
+  if (newMax > 1)  { newMax = 1;    newMin = 1 - span; }
+  elevView = { xMin: newMin, xMax: newMax };
+  drawElevation();
+}, { passive: false });
+elevSvg.addEventListener('touchend', () => {
+  elevTouchState = null; elevSvg.classList.remove('elev-dragging');
+});
+
+// ── Pinch-to-zoom (two fingers) ──
+let elevPinchState = null;
+elevSvg.addEventListener('touchstart', e => {
+  if (!elevOpen || e.touches.length !== 2) return;
+  e.preventDefault();
+  elevTouchState = null;  // cancel any active pan
+  const t0 = e.touches[0], t1 = e.touches[1];
+  const rect     = elevSvg.getBoundingClientRect();
+  const gLeft    = rect.left + ELEV_PAD.left;
+  const gWidthPx = rect.width - ELEV_PAD.left - ELEV_PAD.right;
+  const midT     = Math.max(0, Math.min(1, ((t0.clientX + t1.clientX) / 2 - gLeft) / gWidthPx));
+  elevPinchState = {
+    dist:  Math.abs(t1.clientX - t0.clientX),
+    midN:  elevView.xMin + midT * (elevView.xMax - elevView.xMin),
+    xMin:  elevView.xMin,
+    xMax:  elevView.xMax,
+  };
+}, { passive: false });
+elevSvg.addEventListener('touchmove', e => {
+  if (!elevPinchState || e.touches.length !== 2) return;
+  e.preventDefault();
+  const t0   = e.touches[0], t1 = e.touches[1];
+  const dist = Math.abs(t1.clientX - t0.clientX);
+  if (dist === 0) return;
+  const factor  = elevPinchState.dist / dist;   // >1 = zooming out, <1 = zooming in
+  const span    = elevPinchState.xMax - elevPinchState.xMin;
+  const midN    = elevPinchState.midN;
+  const newSpan = Math.min(1, Math.max(0.02, span * factor));
+  let newMin    = midN - (midN - elevPinchState.xMin) / span * newSpan;
+  let newMax    = newMin + newSpan;
+  if (newMin < 0) { newMin = 0; newMax = newSpan; }
+  if (newMax > 1) { newMax = 1; newMin = 1 - newSpan; }
+  elevView = { xMin: newMin, xMax: newMax };
+  drawElevation();
+}, { passive: false });
+elevSvg.addEventListener('touchend', e => {
+  if (e.touches.length < 2) elevPinchState = null;
+});
 
 /* Called at the end of every updateRoute() run */
 function onRouteUpdated() {
@@ -3938,7 +4371,7 @@ function drawElevation() {
   // ── SVG layout ──
   const W   = elevSvg.clientWidth  || elevSvg.parentElement.clientWidth  || 600;
   const H   = elevSvg.clientHeight || elevSvg.parentElement.clientHeight || 110;
-  const PAD = { top: 18, right: 10, bottom: 22, left: 40 };
+  const PAD = ELEV_PAD;
   const gW  = W - PAD.left - PAD.right;
   const gH  = H - PAD.top  - PAD.bottom;
 
@@ -3959,7 +4392,12 @@ function drawElevation() {
   const eMin   = midE - displayRange / 2;
   const eMax   = midE + displayRange / 2;
 
-  function px(dist) { return PAD.left + (dist / totalD) * gW; }
+  // Apply zoom window (elevView is normalised [0,1] over totalD)
+  const xViewMin = elevView.xMin * totalD;
+  const xViewMax = elevView.xMax * totalD;
+  const viewD    = (xViewMax - xViewMin) || 1;
+
+  function px(dist) { return PAD.left + ((dist - xViewMin) / viewD) * gW; }
   function py(ele)  { return PAD.top  + (1 - (ele - eMin) / (eMax - eMin)) * gH; }
 
   // ── Y-axis ticks ──
@@ -3972,12 +4410,11 @@ function drawElevation() {
   for (let v = t0; v <= eMax; v += step) yTicks.push(v);
 
   // ── X-axis distance ticks ──
-  // Always start with 0 km at the left edge, then intermediate ticks,
-  // then the final distance right-anchored at the right edge.
+  // Always label the left edge, then intermediate ticks, then the right edge.
   const nXTicks = Math.max(1, Math.floor(gW / 90));
   const xTicks  = [];
-  for (let i = 1; i < nXTicks; i++) xTicks.push(i * totalD / nXTicks);
-  xTicks.push(totalD);  // always label the final distance at the right edge
+  for (let i = 1; i < nXTicks; i++) xTicks.push(xViewMin + i * viewD / nXTicks);
+  xTicks.push(xViewMax);  // always label the right edge
 
   // ── CSS variables ──
   const cs      = getComputedStyle(document.documentElement);
@@ -4014,9 +4451,10 @@ function drawElevation() {
   // X-axis labels
   let xAxisSvg = '';
   xAxisSvg =
-    // "0 km" label left-anchored at the y-axis
+    // Left-edge label (shows "0 km" when fully zoomed out, or actual distance when panned)
     '<text x="' + PAD.left + '" y="' + (PAD.top + gH + 14) + '" text-anchor="start"' +
-    ' font-family="\'IBM Plex Mono\',monospace" font-size="9" fill="' + textDim + '">0 km</text>';
+    ' font-family="\'IBM Plex Mono\',monospace" font-size="9" fill="' + textDim + '">' +
+    (xViewMin / 1000).toFixed(1) + ' km</text>';
   xTicks.forEach(function(d, xi) {
     const x      = px(d).toFixed(1);
     const lbl    = (d / 1000).toFixed(1) + ' km';
@@ -4032,6 +4470,8 @@ function drawElevation() {
   for (let wi = 0; wi <= segmentCache.length; wi++) {
     const d = wpDist[wi];
     if (d === undefined) continue;
+    // Skip waypoints outside the visible x range
+    if (d < xViewMin - viewD * 0.02 || d > xViewMax + viewD * 0.02) continue;
 
     // Elevation: first point of this segment, or last point of previous segment
     let ele = null;
@@ -4073,6 +4513,11 @@ function drawElevation() {
       ' font-family="\'IBM Plex Mono\',monospace" font-size="8.5" font-weight="600"' +
       ' fill="' + color + '">' + label + '</text>';
   }
+
+  // ── Zoom state UI ──
+  const isZoomed = elevView.xMin > 0.001 || elevView.xMax < 0.999;
+  document.getElementById('elev-zoom-reset').classList.toggle('visible', isZoomed);
+  elevSvg.classList.toggle('elev-zoomed', isZoomed);
 
   // ── Assemble and inject ──
   elevSvg.innerHTML =
