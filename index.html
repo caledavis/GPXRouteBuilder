@@ -500,6 +500,16 @@
   }
   .seg-remove-btn:hover { color: var(--danger); background: rgba(220,38,38,0.08); }
 
+  .add-seg-btn {
+    display: block; width: calc(100% - 12px); margin: 4px 6px;
+    padding: 6px 8px; background: transparent;
+    border: 1px dashed rgba(8,145,178,0.35); border-radius: 6px;
+    color: var(--accent2); font-family: var(--mono); font-size: 10px;
+    letter-spacing: 0.05em; cursor: pointer; text-align: left;
+    transition: all 0.2s;
+  }
+  .add-seg-btn:hover { background: rgba(8,145,178,0.08); border-color: var(--accent2); }
+
   /* ── Boundary echo: shared waypoint shown at top of new segment ── */
   .wp-boundary-echo {
     opacity: 0.55; border-color: transparent !important;
@@ -996,6 +1006,25 @@
     .header-controls { gap: 5px; }
   }
 
+  /* ── Mobile sidebar: make the whole panel scrollable so no content
+        is ever clipped by the bottom of the screen ── */
+  @media (max-width: 660px) {
+    .sidebar {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* waypoints-section: give up its flex-grow and let content size naturally */
+    .waypoints-section {
+      flex: none;
+    }
+    /* waypoints-list: show all items; outer sidebar scroll handles panning */
+    .waypoints-list {
+      flex: none;
+      overflow-y: visible;
+      min-height: 120px;
+    }
+  }
+
   /* Default: .short spans hidden, .full spans visible */
   .short { display: none; }
   .full  { display: inline; }
@@ -1371,6 +1400,7 @@
   </div>
   <div class="header-controls">
     <div class="routing-badge" id="routing-badge"><div class="routing-spinner"></div>Routing…</div>
+    <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
     <div class="routed-by-badge" id="routed-by-badge"></div>
     <div class="toggle-group" id="map-toggle">
       <button class="toggle-btn active" data-map="bright">Bright</button>
@@ -1382,7 +1412,6 @@
       <div class="switch"></div>
       <span class="snap-label">SNAP</span>
     </div>
-    <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
     <button class="elev-btn" id="elev-btn" title="Show elevation profile">↗ Elev</button>
     <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions">©</button>
   </div>
@@ -1470,14 +1499,14 @@
       <h3>Route Name</h3>
       <input type="text" id="route-name" value="My Route" placeholder="Route name…">
       <div class="stats-row">
-        <div class="stat-box"><div class="stat-label">Points</div><div class="stat-value" id="stat-points">0</div></div>
+        <div class="stat-box"><div class="stat-label">Elev</div><div class="stat-value" id="stat-points">—</div></div>
         <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
       </div>
     </div>
 
     <div class="waypoints-section">
       <div class="waypoints-header">
-        <h3>Via Points</h3>
+        <h3>Route Points</h3>
         <span class="waypoint-count" id="wp-count">0</span>
       </div>
       <div class="waypoints-list" id="waypoints-list">
@@ -3088,7 +3117,7 @@ function renderSidebar() {
   const list  = document.getElementById('waypoints-list');
   const count = waypoints.length;
   document.getElementById('wp-count').textContent    = count;
-  document.getElementById('stat-points').textContent = count;
+  updateElevStat();
   if (!count) {
     list.innerHTML = `<div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>`;
     document.getElementById('split-badge').classList.remove('visible');
@@ -3163,8 +3192,7 @@ function renderSidebar() {
     if (!isFirst) {
       const bWp = waypoints[start];
       html += `<div class="waypoint-item wp-boundary-echo" data-boundary-index="${start}">
-        <span class="wp-echo-icon">↩</span>
-        <div class="wp-info"><span class="wp-echo-name">${escapeHtml(bWp?.name || '')}</span></div>
+        <div class="wp-info"><span class="wp-echo-name">${escapeHtml(bWp?.name || '')}…</span></div>
       </div>`;
     }
 
@@ -3180,6 +3208,14 @@ function renderSidebar() {
       html += wpItemHtml(waypoints[i], i);
     }
   });
+
+  // "Add new segment…" button — shown when there are ≥2 waypoints and the
+  // last waypoint is not already a segment boundary
+  const lastIsSegStart = segments.some((s, si) => si > 0 && s.startIndex === count - 1);
+  if (count > 1 && !lastIsSegStart) {
+    html += `<button class="add-seg-btn" onclick="splitSegmentAt(${count - 1})">+ Add new segment…</button>`;
+  }
+
   list.innerHTML = html;
 
   // Icon picker — toggle between Flag and House (skip knooppunt waypoints)
@@ -3954,8 +3990,18 @@ document.getElementById('export-route-btn').addEventListener('click', exportRout
   });
 })();
 
-/* ── Restore auto-save on page load ── */
-(function restoreAutosave() {
+updateGpxPreview();
+// Collapse sidebar by default on small screens (iPhone etc.)
+if (window.innerWidth <= 500) {
+  document.getElementById('sidebar').classList.add('collapsed');
+}
+// Restore auto-save AFTER invalidateSize() so that fitBounds() and route
+// drawing use the correct map pixel dimensions.  If we restore synchronously
+// the map container is still 0×0 (CSS flex layout hasn't been applied yet),
+// causing fitBounds() to pick the wrong zoom and polylines to project
+// against a zero-size viewport — resulting in invisible route lines.
+setTimeout(() => {
+  map.invalidateSize();
   try {
     const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
     if (data?.waypoints?.length) {
@@ -3970,15 +4016,7 @@ document.getElementById('export-route-btn').addEventListener('click', exportRout
           undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
     }
   } catch(_) {}
-})();
-
-updateGpxPreview();
-// Preview panel starts collapsed — let Leaflet fill the extra space immediately
-setTimeout(() => map.invalidateSize(), 0);
-// Collapse sidebar by default on small screens (iPhone etc.)
-if (window.innerWidth <= 500) {
-  document.getElementById('sidebar').classList.add('collapsed');
-}
+}, 0);
 </script>
 <!-- ── Attributions modal ── -->
 <div class="modal-backdrop" id="attr-modal">
@@ -4423,9 +4461,35 @@ elevSvg.addEventListener('touchend', e => {
   if (e.touches.length < 2) elevPinchState = null;
 });
 
+/* ── Elevation stat (used in sidebar stat box) ── */
+function updateElevStat() {
+  const el = document.getElementById('stat-points');
+  if (!el) return;
+  if (!snapEnabled || !segmentCache.length) { el.textContent = '—'; el.style.color = ''; return; }
+  let gain = 0, loss = 0, hasEle = false;
+  for (let si = 0; si < segmentCache.length; si++) {
+    const seg = segmentCache[si];
+    if (!seg) continue;
+    for (let j = 1; j < seg.length; j++) {
+      const e0 = (seg[j-1].length > 2 && seg[j-1][2] != null) ? seg[j-1][2] : null;
+      const e1 = (seg[j].length   > 2 && seg[j][2]   != null) ? seg[j][2]   : null;
+      if (e0 !== null && e1 !== null) {
+        hasEle = true;
+        const d = e1 - e0;
+        if (d > 0) gain += d; else loss -= d;
+      }
+    }
+  }
+  if (!hasEle) { el.textContent = '—'; el.style.color = ''; return; }
+  const net = gain - loss;
+  el.textContent = (net >= 0 ? '+' : '') + Math.round(net) + ' m';
+  el.style.color = net < 0 ? 'var(--danger)' : '';
+}
+
 /* Called at the end of every updateRoute() run */
 function onRouteUpdated() {
   if (elevOpen) drawElevation();
+  updateElevStat();
 }
 
 /* ── Main draw function ── */
