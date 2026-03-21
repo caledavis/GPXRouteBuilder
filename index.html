@@ -463,7 +463,10 @@
     margin-bottom: 4px;
     transition: border-color 0.2s, background 0.2s;
     cursor: pointer;
+    -webkit-user-select: none; user-select: none;
   }
+  /* Re-enable text selection inside the name input */
+  .waypoint-item .wp-name-input { -webkit-user-select: text; user-select: text; }
   .waypoint-item:hover { border-color: var(--accent); }
   .waypoint-item.selected { border-color: var(--accent2); background: rgba(8,145,178,0.06); }
 
@@ -3245,11 +3248,40 @@ function renderSidebar() {
   });
   list.querySelectorAll('.waypoint-item:not(.wp-boundary-echo)').forEach(el => {
     el.addEventListener('click', () => selectWaypoint(+el.dataset.index));
+
+    // ── Desktop right-click ──
     el.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
       openCtxMenu(e.clientX, e.clientY, +el.dataset.index);
     });
+
+    // ── iPad / iPhone long-press (500 ms) ──
+    let lpTimer = null;
+    let lpStartX = 0, lpStartY = 0;
+
+    el.addEventListener('touchstart', e => {
+      // Don't start a long-press when the user is touching the drag handle
+      if (e.target.closest('.wp-drag')) return;
+      if (e.touches.length !== 1) { clearLp(); return; }
+      const t = e.touches[0];
+      lpStartX = t.clientX; lpStartY = t.clientY;
+      lpTimer = setTimeout(() => {
+        lpTimer = null;
+        openCtxMenu(lpStartX, lpStartY, +el.dataset.index);
+      }, 500);
+    }, { passive: true });
+
+    el.addEventListener('touchmove', e => {
+      if (!lpTimer) return;
+      const t = e.touches[0];
+      if (Math.abs(t.clientX - lpStartX) > 10 || Math.abs(t.clientY - lpStartY) > 10) clearLp();
+    }, { passive: true });
+
+    el.addEventListener('touchend',    clearLp, { passive: true });
+    el.addEventListener('touchcancel', clearLp, { passive: true });
+
+    function clearLp() { if (lpTimer) { clearTimeout(lpTimer); lpTimer = null; } }
   });
 
   // ── Waypoint reorder via pointer events (works on mouse + iPad touch) ──
