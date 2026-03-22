@@ -1425,7 +1425,7 @@
 
 <header>
   <div class="logo">
-    <div class="logo-icon">🚴</div>
+    <div class="logo-icon"><i class="fa-solid fa-person-biking"></i></div>
     <div class="logo-text">
       GPX ROUTE BUILDER
       <span class="logo-subtitle">Plan a cycling trip with turn-by-turn navigation on your GPS!</span>
@@ -1433,7 +1433,7 @@
   </div>
   <div class="header-controls">
     <div class="routing-badge" id="routing-badge"><div class="routing-spinner"></div><span class="routing-text">Routing…</span></div>
-    <div class="split-badge" id="split-badge">✂<span class="split-text"> <span id="split-label"></span></span></div>
+    <div class="split-badge" id="split-badge"><i class="fa-solid fa-scissors"></i><span class="split-text"> <span id="split-label"></span></span></div>
     <div class="routed-by-badge" id="routed-by-badge"></div>
     <span class="map-group-lbl"><i class="fa-solid fa-map"></i></span>
     <div class="toggle-group" id="map-toggle">
@@ -1441,13 +1441,13 @@
       <button class="toggle-btn" data-map="cyclosm" title="CyclOSM cycling map"><span class="map-lbl">CyclOSM</span><span class="map-ico">2</span></button>
       <button class="toggle-btn" data-map="osm" title="OpenStreetMap"><span class="map-lbl full">OpenStreetMap</span><span class="map-lbl short">OSM</span><span class="map-ico">3</span></button>
     </div>
-    <button class="grey-btn" id="grey-btn" title="Toggle greyscale map">◑</button>
+    <button class="grey-btn" id="grey-btn" title="Toggle greyscale map"><i class="fa-solid fa-circle-half-stroke"></i></button>
     <div class="snap-toggle" id="snap-toggle" title="Snap route to roads">
       <div class="switch"></div>
       <span class="snap-label"><i class="fa-solid fa-magnet"></i></span>
     </div>
-    <button class="elev-btn" id="elev-btn" title="Show elevation profile"><i class="fa-solid fa-chart-area"></i></button>
-    <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions">©</button>
+    <button class="elev-btn" id="elev-btn" title="Show elevation profile"><i class="fa-solid fa-mountain"></i></button>
+    <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions"><i class="fa-regular fa-copyright"></i></button>
   </div>
 </header>
 
@@ -1457,17 +1457,17 @@
 
     <!-- Slim strip: shown when collapsed -->
     <div class="sidebar-collapsed-tab">
-      <button class="sidebar-toggle-btn" id="sidebar-collapsed-btn" title="Show sidebar">▶</button>
+      <button class="sidebar-toggle-btn" id="sidebar-collapsed-btn" title="Show sidebar"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 
     <div class="sidebar-section">
       <h3 style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
         Download &amp; Upload
-        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar">◀</button>
+        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar"><i class="fa-solid fa-chevron-left"></i></button>
       </h3>
       <div class="save-row">
-        <button class="save-btn" id="export-route-btn">⬇ Download GPX</button>
-        <label class="save-btn" for="import-route-input" style="cursor:pointer;">⬆ Upload GPX</label>
+        <button class="save-btn" id="export-route-btn"><i class="fa-solid fa-download"></i> Download GPX</button>
+        <label class="save-btn" for="import-route-input" style="cursor:pointer;"><i class="fa-solid fa-upload"></i> Upload GPX</label>
         <input type="file" id="import-route-input" accept=".gpx" style="display:none">
       </div>
       <div class="autosave-notice">
@@ -1480,12 +1480,12 @@
       <h3>GPX Overlay</h3>
       <input type="file" id="gpx-file-input" accept=".gpx" style="display:none">
       <label for="gpx-file-input" class="gpx-upload-label">
-        <span>📂</span> Upload GPX file
+        <span><i class="fa-solid fa-folder-open"></i></span> Upload GPX file
       </label>
       <div id="gpx-file-row" class="gpx-file-row active" style="display:none">
         <div class="gpx-toggle" id="gpx-toggle" title="Toggle visibility"></div>
         <span class="gpx-file-name" id="gpx-file-name"></span>
-        <button class="gpx-remove" id="gpx-remove" title="Remove overlay">✕</button>
+        <button class="gpx-remove" id="gpx-remove" title="Remove overlay"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
 
@@ -1544,14 +1544,14 @@
         <span class="waypoint-count" id="wp-count">0</span>
       </div>
       <div class="waypoints-list" id="waypoints-list">
-        <div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>
+        <div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add<br>via points to your route</div>
       </div>
       <div class="address-search-row">
         <input type="text" id="address-input" class="address-input" placeholder="Search address to add waypoint…" autocomplete="off" spellcheck="false">
-        <button class="address-search-btn" id="address-search-btn" title="Add waypoint at address">＋</button>
+        <button class="address-search-btn" id="address-search-btn" title="Add waypoint at address"><i class="fa-solid fa-plus"></i></button>
       </div>
       <div class="address-results" id="address-results"></div>
-      <button class="add-btn" id="clear-btn">✕ Clear All Points</button>
+      <button class="add-btn" id="clear-btn"><i class="fa-solid fa-xmark"></i> Clear All Points</button>
     </div>
 
   </div><!-- /sidebar -->
@@ -1559,13 +1559,13 @@
   <div class="map-container">
     <div id="map"></div>
     <div class="map-hint">Click map to add via points · Drag markers to move</div>
-    <button class="show-all-badge" id="show-all-badge">↩ Show all routes</button>
+    <button class="show-all-badge" id="show-all-badge"><i class="fa-solid fa-rotate-left"></i> Show all routes</button>
   </div>
 
   <div class="preview-panel collapsed" id="preview-panel">
     <div class="preview-header">
       <h3>GPX Preview</h3>
-      <button class="preview-toggle-btn" id="preview-toggle-btn" title="Show preview">▶</button>
+      <button class="preview-toggle-btn" id="preview-toggle-btn" title="Show preview"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
     <div class="preview-tabs" id="preview-tabs"></div>
     <div class="preview-body"><pre id="gpx-preview"></pre></div>
@@ -1577,14 +1577,14 @@
 <div class="elev-panel" id="elev-panel">
   <div class="elev-header" id="elev-header">
     <div class="elev-title">
-      ↗ Elevation
+      <i class="fa-solid fa-arrow-trend-up"></i> Elevation
       <span class="elev-stats" id="elev-stats"></span>
     </div>
-    <span class="elev-chevron" id="elev-chevron">▲</span>
+    <span class="elev-chevron" id="elev-chevron"><i class="fa-solid fa-chevron-up"></i></span>
   </div>
   <div class="elev-body" id="elev-body">
     <div class="elev-empty" id="elev-empty">Enable snapping and add waypoints to see elevation</div>
-    <button id="elev-zoom-reset" title="Reset zoom · or double-click graph">⊘ reset zoom</button>
+    <button id="elev-zoom-reset" title="Reset zoom · or double-click graph"><i class="fa-solid fa-ban"></i> reset zoom</button>
     <svg id="elev-svg" xmlns="http://www.w3.org/2000/svg"></svg>
   </div>
 </div>
@@ -1597,11 +1597,11 @@
   </button>
   <div class="ctx-menu-divider" id="ctx-split-divider"></div>
   <button class="ctx-menu-item" id="ctx-split-segment">
-    <span class="ctx-menu-icon">✂</span> <span id="ctx-split-label">Split Segment Here</span>
+    <span class="ctx-menu-icon"><i class="fa-solid fa-scissors"></i></span> <span id="ctx-split-label">Split Segment Here</span>
   </button>
   <div class="ctx-menu-divider"></div>
   <button class="ctx-menu-item danger" id="ctx-delete">
-    <span class="ctx-menu-icon">✕</span> Delete
+    <span class="ctx-menu-icon"><i class="fa-solid fa-xmark"></i></span> Delete
   </button>
 </div>
 
@@ -1609,10 +1609,10 @@
 <div class="ctx-menu" id="route-ctx-menu">
   <div class="ctx-menu-label" id="route-ctx-label"></div>
   <button class="ctx-menu-item" id="route-ctx-only">
-    <span class="ctx-menu-icon">⊙</span> <span id="route-ctx-only-label">Show only this route</span>
+    <span class="ctx-menu-icon"><i class="fa-regular fa-circle-dot"></i></span> <span id="route-ctx-only-label">Show only this route</span>
   </button>
   <button class="ctx-menu-item" id="route-ctx-all">
-    <span class="ctx-menu-icon">↩</span> Show all routes
+    <span class="ctx-menu-icon"><i class="fa-solid fa-rotate-left"></i></span> Show all routes
   </button>
 </div>
 
@@ -1943,7 +1943,7 @@ document.getElementById('preview-toggle-btn').addEventListener('click', () => {
   const panel = document.getElementById('preview-panel');
   const btn   = document.getElementById('preview-toggle-btn');
   const collapsed = panel.classList.toggle('collapsed');
-  btn.textContent = collapsed ? '▶' : '◀';
+  btn.innerHTML = collapsed ? '<i class="fa-solid fa-chevron-right"></i>' : '<i class="fa-solid fa-chevron-left"></i>';
   btn.title       = collapsed ? 'Show preview' : 'Hide preview';
   // Trigger a map resize so Leaflet fills the newly available space
   setTimeout(() => map.invalidateSize(), 260);
@@ -3182,7 +3182,7 @@ function renderSidebar() {
   document.getElementById('wp-count').textContent    = count;
   updateElevStat();
   if (!count) {
-    list.innerHTML = `<div class="empty-state"><div class="icon">📍</div>Click on the map to add<br>via points to your route</div>`;
+    list.innerHTML = `<div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add<br>via points to your route</div>`;
     document.getElementById('split-badge').classList.remove('visible');
     return;
   }
@@ -3228,9 +3228,9 @@ function renderSidebar() {
         <input class="wp-name-input" value="${escapeHtml(wp.name)}" data-index="${i}" placeholder="Point name…">
       </div>
       <div class="wp-actions">
-        <button class="wp-btn up"   title="Move up"   onclick="moveWaypoint(${i},-1)">↑</button>
-        <button class="wp-btn down" title="Move down" onclick="moveWaypoint(${i}, 1)">↓</button>
-        <button class="wp-btn"      title="Delete"    onclick="removeWaypoint(${i})">✕</button>
+        <button class="wp-btn up"   title="Move up"   onclick="moveWaypoint(${i},-1)"><i class="fa-solid fa-arrow-up"></i></button>
+        <button class="wp-btn down" title="Move down" onclick="moveWaypoint(${i}, 1)"><i class="fa-solid fa-arrow-down"></i></button>
+        <button class="wp-btn"      title="Delete"    onclick="removeWaypoint(${i})"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>`;
   }
@@ -3246,9 +3246,9 @@ function renderSidebar() {
 
     // Segment header
     html += `<div class="seg-header${isFirst ? ' seg-header-first' : ''}" data-seg="${sIdx}">
-      <span class="seg-label-icon">◆</span>
+      <span class="seg-label-icon"><i class="fa-solid fa-diamond"></i></span>
       <input class="seg-name-input" value="${escapeHtml(seg.name)}" data-seg="${sIdx}" placeholder="Segment name…">
-      ${!isFirst ? `<button class="seg-remove-btn" data-seg="${sIdx}" title="Remove this segment split">✕</button>` : ''}
+      ${!isFirst ? `<button class="seg-remove-btn" data-seg="${sIdx}" title="Remove this segment split"><i class="fa-solid fa-xmark"></i></button>` : ''}
     </div>`;
 
     // Boundary echo for non-first segments (shared waypoint shown read-only)
@@ -3266,7 +3266,7 @@ function renderSidebar() {
       const localIdx = i - start;
       if (segSplit && localIdx > 0 && localIdx % MAX_PER_FILE === 0) {
         const f = Math.floor(localIdx / MAX_PER_FILE) + 1;
-        html += `<div class="segment-divider">✂ PART ${f}/${segFiles}</div>`;
+        html += `<div class="segment-divider"><i class="fa-solid fa-scissors"></i> PART ${f}/${segFiles}</div>`;
       }
       html += wpItemHtml(waypoints[i], i);
     }
@@ -4068,13 +4068,12 @@ setTimeout(restoreAutosave, 4000);
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="attr-modal-title">
     <div class="modal-header">
       <h2 id="attr-modal-title">Licences &amp; Attributions</h2>
-      <button class="modal-close" id="attr-modal-close" title="Close">✕</button>
+      <button class="modal-close" id="attr-modal-close" title="Close"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="modal-body">
 
       <div class="attr-compliance-note">
-        ✓ All components use open-source or permissive licences. Map data attributions
-        are displayed on the map as required by ODbL and tile usage policies.
+        <i class="fa-solid fa-check"></i> All components use open-source or permissive licences. On-map attribution for OpenStreetMap, OpenMapTiles, and OpenFreeMap is displayed via the Leaflet/MapLibre attribution control as required. Font Awesome icons are used under CC BY 4.0; attribution is provided below as required by that licence.
       </div>
 
       <div class="attr-card" style="border-color: rgba(22,163,74,0.3); background: rgba(22,163,74,0.04);">
@@ -4092,7 +4091,7 @@ setTimeout(restoreAutosave, 4000);
             <a href="https://www.openstreetmap.org/copyright" target="_blank">© OpenStreetMap contributors</a>
             <span class="attr-licence blue">ODbL 1.0</span>
           </div>
-          <div class="attr-desc">All map data — roads, paths, place names, routing network — is from the OpenStreetMap project, contributed by volunteers worldwide. Used under the Open Database Licence, which requires attribution and share-alike for derivative databases.</div>
+          <div class="attr-desc">All map data — roads, paths, place names, routing network — is from the OpenStreetMap project, contributed by volunteers worldwide. Used under the Open Database Licence, which requires attribution and share-alike for derivative databases. Attribution is shown on the map.</div>
         </div>
       </div>
 
@@ -4101,23 +4100,23 @@ setTimeout(restoreAutosave, 4000);
         <div class="attr-card">
           <div class="attr-name">
             <a href="https://openfreemap.org" target="_blank">OpenFreeMap</a>
-            <span class="attr-licence">MIT</span>
+            <span class="attr-licence">MIT (code)</span>
           </div>
-          <div class="attr-desc">Vector tile hosting and the Bright map style. Free and open-source tile infrastructure built on top of OpenMapTiles and OpenStreetMap data.</div>
+          <div class="attr-desc">Vector tile hosting and the Bright map style. Free and open-source tile infrastructure built on OpenMapTiles and OpenStreetMap data. Attribution is required and displayed on the map: "OpenFreeMap © OpenMapTiles Data from OpenStreetMap".</div>
         </div>
         <div class="attr-card">
           <div class="attr-name">
-            <a href="https://openmaptiles.org" target="_blank">OpenMapTiles</a>
-            <span class="attr-licence grey">BSD + CC-BY</span>
+            <a href="https://openmaptiles.org" target="_blank">© OpenMapTiles</a>
+            <span class="attr-licence grey">BSD + CC-BY 4.0</span>
           </div>
-          <div class="attr-desc">Vector tile schema used to encode OpenStreetMap data into the tiles served by OpenFreeMap. Developed by MapTiler and the OpenMapTiles community.</div>
+          <div class="attr-desc">Vector tile schema underlying the tiles served by OpenFreeMap. Developed by MapTiler and the OpenMapTiles community. The CC-BY 4.0 component requires on-screen attribution "© OpenMapTiles" on every map — satisfied via the MapLibre attribution control.</div>
         </div>
         <div class="attr-card">
           <div class="attr-name">
             <a href="https://www.cyclosm.org" target="_blank">CyclOSM</a>
-            <span class="attr-licence grey">BSD 3-clause</span>
+            <span class="attr-licence grey">BSD 3-clause (style)</span>
           </div>
-          <div class="attr-desc">Cycle-oriented raster map style rendered from OpenStreetMap data. Tile server provided by OpenStreetMap France. Used under the OSM tile usage policy.</div>
+          <div class="attr-desc">Cycle-oriented raster map style rendered from OpenStreetMap data. Style source code is BSD 3-clause. Tiles are served by OpenStreetMap France under the OSM tile usage policy, which requires visible attribution and a reasonable usage rate.</div>
         </div>
       </div>
 
@@ -4179,7 +4178,14 @@ setTimeout(restoreAutosave, 4000);
       </div>
 
       <div>
-        <div class="attr-section-title">Typography</div>
+        <div class="attr-section-title">Icons &amp; Typography</div>
+        <div class="attr-card">
+          <div class="attr-name">
+            <a href="https://fontawesome.com" target="_blank">Font Awesome Free 6.5.2</a>
+            <span class="attr-licence grey">CC BY 4.0 / SIL OFL 1.1 / MIT</span>
+          </div>
+          <div class="attr-desc">Icons used throughout the interface (map switcher, snapping, elevation, scissors). Icons are licensed CC BY 4.0 (attribution required — satisfied here); web fonts under SIL OFL 1.1; CSS/code under MIT. © 2024 Fonticons, Inc.</div>
+        </div>
         <div class="attr-card">
           <div class="attr-name">
             <a href="https://github.com/IBM/plex" target="_blank">IBM Plex Mono</a>
@@ -4192,7 +4198,7 @@ setTimeout(restoreAutosave, 4000);
             <a href="https://github.com/floriankarsten/space-grotesk" target="_blank">Space Grotesk</a>
             <span class="attr-licence grey">SIL OFL 1.1</span>
           </div>
-          <div class="attr-desc">Proportional sans-serif designed by Florian Karsten (2018), based on Space Mono by Colophon Foundry for Google Fonts. © 2016 Google Inc. & Colophon Foundry; © 2018 Florian Karsten.</div>
+          <div class="attr-desc">Proportional sans-serif designed by Florian Karsten (2018), based on Space Mono by Colophon Foundry for Google Fonts. © 2016 Google Inc. &amp; Colophon Foundry; © 2018 Florian Karsten.</div>
         </div>
         <div class="attr-card">
           <div class="attr-name">
