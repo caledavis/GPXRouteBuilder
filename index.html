@@ -249,11 +249,16 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
     transition: width 0.25s ease, background 0.25s, border-color 0.25s;
     position: relative;
     z-index: 1001;
   }
+  .sidebar::-webkit-scrollbar { width: 4px; }
+  .sidebar::-webkit-scrollbar-track { background: transparent; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
   .sidebar.collapsed { width: 32px; }
   .sidebar.collapsed .sidebar-section,
   .sidebar.collapsed .waypoints-section { display: none; }
@@ -447,7 +452,7 @@
   #knoop-toggle.loading .names-toggle-switch { display: none; }
 
   /* ── waypoints ── */
-  .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 350px; }
   .waypoints-header {
     padding: 12px 14px 8px;
     display: flex; align-items: center; justify-content: space-between;
@@ -728,7 +733,7 @@
     width: 270px; flex-shrink: 0;
     background: var(--surface); border-left: 1px solid var(--border);
     display: flex; flex-direction: column; overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    -webkit-overflow-scrolling: touch; touch-action: pan-y;
     transition: width 0.25s ease, background 0.25s, border-color 0.25s;
     position: relative;
     z-index: 1001;
