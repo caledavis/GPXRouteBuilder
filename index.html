@@ -3595,13 +3595,13 @@ function buildGpxFiles() {
     const segName  = seg.name || `Segment ${sIdx + 1}`;
 
     if (segWps.length <= MAX_PER_FILE) {
-      files.push({ filename: sanitize(segName) + '.gpx', content: gpxXml(segName, now, segWps) });
+      files.push({ filename: sanitize(base) + '_' + sanitize(segName) + '.gpx', content: gpxXml(segName, now, segWps) });
     } else {
       const numParts = Math.ceil(segWps.length / MAX_PER_FILE);
       for (let f = 0; f < numParts; f++) {
         const chunk    = segWps.slice(f * MAX_PER_FILE, (f + 1) * MAX_PER_FILE);
         const partName = `${segName}_Part${f + 1}of${numParts}`;
-        const filename = `${sanitize(segName)}_Part${pad(f + 1)}of${pad(numParts)}.gpx`;
+        const filename = `${sanitize(base)}_${sanitize(segName)}_Part${pad(f + 1)}of${pad(numParts)}.gpx`;
         files.push({ filename, content: gpxXml(partName, now, chunk) });
       }
     }
