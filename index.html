@@ -249,7 +249,8 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     transition: width 0.25s ease, background 0.25s, border-color 0.25s;
   }
   .sidebar.collapsed { width: 32px; }
@@ -445,7 +446,7 @@
   #knoop-toggle.loading .names-toggle-switch { display: none; }
 
   /* ── waypoints ── */
-  .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
+  .waypoints-section { flex: none; overflow: visible; display: flex; flex-direction: column; min-height: 0; }
   .waypoints-header {
     padding: 12px 14px 8px;
     display: flex; align-items: center; justify-content: space-between;
@@ -455,7 +456,7 @@
   .waypoints-header h3 { font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; }
   .waypoint-count { font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 10px; }
 
-  .waypoints-list { flex: 1; overflow-y: auto; padding: 6px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+  .waypoints-list { flex: none; overflow-y: visible; min-height: 120px; padding: 6px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
   .waypoints-list::-webkit-scrollbar { width: 4px; }
   .waypoints-list::-webkit-scrollbar-track { background: transparent; }
   .waypoints-list::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
@@ -721,7 +722,8 @@
   .preview-panel {
     width: 270px; flex-shrink: 0;
     background: var(--surface); border-left: 1px solid var(--border);
-    display: flex; flex-direction: column; overflow: hidden;
+    display: flex; flex-direction: column; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     transition: width 0.25s ease, background 0.25s, border-color 0.25s;
   }
   .preview-panel.collapsed { width: 32px; }
@@ -1041,24 +1043,6 @@
     .routed-by-badge { display: none !important; }
   }
 
-  /* ── Mobile sidebar: make the whole panel scrollable so no content
-        is ever clipped by the bottom of the screen ── */
-  @media (max-width: 660px) {
-    .sidebar {
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-    /* waypoints-section: give up its flex-grow and let content size naturally */
-    .waypoints-section {
-      flex: none;
-    }
-    /* waypoints-list: show all items; outer sidebar scroll handles panning */
-    .waypoints-list {
-      flex: none;
-      overflow-y: visible;
-      min-height: 120px;
-    }
-  }
 
   /* Default: .short spans hidden, .full spans visible */
   .short { display: none; }
