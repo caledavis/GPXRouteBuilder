@@ -252,6 +252,8 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     transition: width 0.25s ease, background 0.25s, border-color 0.25s;
+    position: relative;
+    z-index: 1001;
   }
   .sidebar.collapsed { width: 32px; }
   .sidebar.collapsed .sidebar-section,
@@ -725,6 +727,8 @@
     display: flex; flex-direction: column; overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     transition: width 0.25s ease, background 0.25s, border-color 0.25s;
+    position: relative;
+    z-index: 1001;
   }
   .preview-panel.collapsed { width: 32px; }
   .preview-panel.collapsed .preview-tabs,
@@ -1542,14 +1546,14 @@
 
   <div class="map-container">
     <div id="map"></div>
-    <div class="map-hint">Click map to add via points · Drag markers to move</div>
+    <div class="map-hint">Click to add points · Drag them to move</div>
     <button class="show-all-badge" id="show-all-badge"><i class="fa-solid fa-rotate-left"></i> Show all routes</button>
   </div>
 
   <div class="preview-panel collapsed" id="preview-panel">
     <div class="preview-header">
       <h3>GPX Preview</h3>
-      <button class="preview-toggle-btn" id="preview-toggle-btn" title="Show preview"><i class="fa-solid fa-chevron-right"></i></button>
+      <button class="preview-toggle-btn" id="preview-toggle-btn" title="Show preview"><i class="fa-solid fa-chevron-left"></i></button>
     </div>
     <div class="preview-tabs" id="preview-tabs"></div>
     <div class="preview-body"><pre id="gpx-preview"></pre></div>
@@ -1927,7 +1931,7 @@ document.getElementById('preview-toggle-btn').addEventListener('click', () => {
   const panel = document.getElementById('preview-panel');
   const btn   = document.getElementById('preview-toggle-btn');
   const collapsed = panel.classList.toggle('collapsed');
-  btn.innerHTML = collapsed ? '<i class="fa-solid fa-chevron-right"></i>' : '<i class="fa-solid fa-chevron-left"></i>';
+  btn.innerHTML = collapsed ? '<i class="fa-solid fa-chevron-left"></i>' : '<i class="fa-solid fa-chevron-right"></i>';
   btn.title       = collapsed ? 'Show preview' : 'Hide preview';
   // Trigger a map resize so Leaflet fills the newly available space
   setTimeout(() => map.invalidateSize(), 260);
