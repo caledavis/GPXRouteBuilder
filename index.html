@@ -12,6 +12,7 @@
 <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Space+Grotesk:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
 <style>
   /* ── Theme variables ── */
   :root {
@@ -117,6 +118,11 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     overflow: hidden;
+    flex-shrink: 0;
+    /* Force GPU compositing — prevents WebKit from swallowing SVG children
+       inside overflow:hidden + border-radius containers */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
     transition: background 0.25s, border-color 0.25s;
   }
   .toggle-btn {
@@ -978,6 +984,13 @@
   .leaflet-control-attribution { background: var(--hint-bg) !important; color: var(--text-dim) !important; font-size: 9px !important; }
   .leaflet-control-attribution a { color: var(--accent2) !important; }
 
+  /* Map number badges — hidden by default, shown on mobile via media query below */
+  .map-ico { display: none; font-size: 13px; font-weight: 700; font-family: var(--mono); line-height: 1; }
+  /* "Map" label — hidden by default, shown on mobile via media query below */
+  .map-group-lbl { display: none; font-size: 13px; color: var(--text-dim); align-self: center; }
+  /* FA icons inside header controls inherit the button/label colour */
+  .snap-label i, .map-group-lbl i { font-size: 13px; }
+
   /* ── Responsive header ── */
 
   /* Below ~900px: hide the subtitle */
@@ -1000,10 +1013,32 @@
     header { padding: 0 12px; }
   }
 
-  /* Below ~500px (iPhone): hide logo text, keep just the icon */
+  /* Below ~500px (iPhone): icon-only header — hide all text labels */
   @media (max-width: 500px) {
+    :root { --ctrl-h: 28px; }
     .logo-text { display: none; }
-    .header-controls { gap: 5px; }
+    header { padding: 0 10px; }
+    .header-controls { gap: 4px; }
+
+    /* Map style toggle — square icon-only buttons */
+    .map-lbl, .map-lbl.full, .map-lbl.short { display: none !important; }
+    .map-ico { display: inline-flex; align-items: center; justify-content: center; }
+    .toggle-btn { width: var(--ctrl-h); padding: 0; justify-content: center; }
+    .map-group-lbl { display: inline-block; }
+
+    /* Snap toggle — keep label, tighten padding */
+    .snap-toggle { padding: 0 6px; gap: 4px; }
+
+
+    /* Routing spinner — hide text, show spinner only */
+    .routing-text { display: none; }
+    .routing-badge { padding: 3px 7px; gap: 0; }
+
+    /* Split badge — hide file/segment counts, keep scissor icon */
+    .split-text { display: none; }
+
+    /* Router badge is secondary info — hide on small screens */
+    .routed-by-badge { display: none !important; }
   }
 
   /* ── Mobile sidebar: make the whole panel scrollable so no content
@@ -1373,12 +1408,10 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     cursor: pointer;
-    font-size: 11px;
-    font-family: var(--mono);
+    font-size: 13px;
     color: var(--text-dim);
-    letter-spacing: 0.05em;
     transition: all 0.2s;
-    display: flex; align-items: center; gap: 5px;
+    display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
     box-sizing: border-box;
   }
@@ -1399,20 +1432,21 @@
     </div>
   </div>
   <div class="header-controls">
-    <div class="routing-badge" id="routing-badge"><div class="routing-spinner"></div>Routing…</div>
-    <div class="split-badge" id="split-badge">✂ <span id="split-label"></span></div>
+    <div class="routing-badge" id="routing-badge"><div class="routing-spinner"></div><span class="routing-text">Routing…</span></div>
+    <div class="split-badge" id="split-badge">✂<span class="split-text"> <span id="split-label"></span></span></div>
     <div class="routed-by-badge" id="routed-by-badge"></div>
+    <span class="map-group-lbl"><i class="fa-solid fa-map"></i></span>
     <div class="toggle-group" id="map-toggle">
-      <button class="toggle-btn active" data-map="bright">Bright</button>
-      <button class="toggle-btn" data-map="cyclosm">CyclOSM</button>
-      <button class="toggle-btn" data-map="osm"><span class="full">OpenStreetMap</span><span class="short">OSM</span></button>
+      <button class="toggle-btn active" data-map="bright" title="Bright style"><span class="map-lbl">Bright</span><span class="map-ico">1</span></button>
+      <button class="toggle-btn" data-map="cyclosm" title="CyclOSM cycling map"><span class="map-lbl">CyclOSM</span><span class="map-ico">2</span></button>
+      <button class="toggle-btn" data-map="osm" title="OpenStreetMap"><span class="map-lbl full">OpenStreetMap</span><span class="map-lbl short">OSM</span><span class="map-ico">3</span></button>
     </div>
     <button class="grey-btn" id="grey-btn" title="Toggle greyscale map">◑</button>
-    <div class="snap-toggle" id="snap-toggle">
+    <div class="snap-toggle" id="snap-toggle" title="Snap route to roads">
       <div class="switch"></div>
-      <span class="snap-label">SNAP</span>
+      <span class="snap-label"><i class="fa-solid fa-magnet"></i></span>
     </div>
-    <button class="elev-btn" id="elev-btn" title="Show elevation profile">↗ Elev</button>
+    <button class="elev-btn" id="elev-btn" title="Show elevation profile"><i class="fa-solid fa-chart-area"></i></button>
     <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions">©</button>
   </div>
 </header>
@@ -1819,7 +1853,36 @@ const map = L.map('map', { center: [52.08, 4.31], zoom: 11 });
 // Start with Bright (GL layer) as default
 let currentTile = null;
 let currentGL   = null;
-makeBrightLayer().then(layer => { currentGL = layer; currentGL.addTo(map); });
+
+// restoreAutosave() is called once the map is fully ready (GL layer loaded).
+// Guarded by a flag so the setTimeout safety-net and the .then() path can't
+// both fire it.
+let _autosaveRestored = false;
+function restoreAutosave() {
+  if (_autosaveRestored) return;
+  _autosaveRestored = true;
+  map.invalidateSize();
+  try {
+    const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
+    if (data?.waypoints?.length) {
+      if (data.snapEnabled) {
+        snapEnabled = true;
+        document.getElementById('snap-toggle').classList.add('active');
+      }
+      deserialiseRoute(data);
+      document.getElementById('autosave-label').textContent =
+        'Restored from auto-save · ' + new Date(data.savedAt).toLocaleDateString(
+          undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    }
+  } catch(_) {}
+}
+
+makeBrightLayer().then(layer => {
+  currentGL = layer;
+  currentGL.addTo(map);
+  // Restore after the GL canvas is in the DOM so polylines are drawn on top.
+  restoreAutosave();
+}).catch(() => restoreAutosave());
 
 document.querySelectorAll('#map-toggle .toggle-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -2834,7 +2897,7 @@ function clearRouteLayer() {
 /* Draw segments — each entry is { coords: [[lat,lng],...], segIdx: i }
    where segIdx means "inserting here goes between waypoint i and i+1". */
 function drawSegments(segments, snapped = false) {
-  const group = L.layerGroup().addTo(map);
+  const group = L.featureGroup().addTo(map);
 
   segments.forEach(({ coords: latlngs, segIdx }) => {
     // Visible line
@@ -3995,28 +4058,10 @@ updateGpxPreview();
 if (window.innerWidth <= 500) {
   document.getElementById('sidebar').classList.add('collapsed');
 }
-// Restore auto-save AFTER invalidateSize() so that fitBounds() and route
-// drawing use the correct map pixel dimensions.  If we restore synchronously
-// the map container is still 0×0 (CSS flex layout hasn't been applied yet),
-// causing fitBounds() to pick the wrong zoom and polylines to project
-// against a zero-size viewport — resulting in invisible route lines.
-setTimeout(() => {
-  map.invalidateSize();
-  try {
-    const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
-    if (data?.waypoints?.length) {
-      // Restore snap state before deserialising so updateRoute() uses the right mode
-      if (data.snapEnabled) {
-        snapEnabled = true;
-        document.getElementById('snap-toggle').classList.add('active');
-      }
-      deserialiseRoute(data);
-      document.getElementById('autosave-label').textContent =
-        'Restored from auto-save · ' + new Date(data.savedAt).toLocaleDateString(
-          undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-    }
-  } catch(_) {}
-}, 0);
+// Safety-net: if the GL style fetch hasn't finished after 4 s (offline, slow
+// network) restore autosave anyway so the user isn't left with a blank state.
+// The guard flag in restoreAutosave() prevents a double-restore.
+setTimeout(restoreAutosave, 4000);
 </script>
 <!-- ── Attributions modal ── -->
 <div class="modal-backdrop" id="attr-modal">
