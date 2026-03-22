@@ -1390,8 +1390,9 @@
   }
 
   .elev-btn {
+    width: var(--ctrl-h);
     height: var(--ctrl-h);
-    padding: 0 11px;
+    padding: 0;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: 8px;
@@ -1429,11 +1430,11 @@
       <button class="toggle-btn" data-map="cyclosm" title="CyclOSM cycling map"><span class="map-lbl">CyclOSM</span><span class="map-ico">2</span></button>
       <button class="toggle-btn" data-map="osm" title="OpenStreetMap"><span class="map-lbl full">OpenStreetMap</span><span class="map-lbl short">OSM</span><span class="map-ico">3</span></button>
     </div>
-    <button class="grey-btn" id="grey-btn" title="Toggle greyscale map"><i class="fa-solid fa-circle-half-stroke"></i></button>
     <div class="snap-toggle" id="snap-toggle" title="Snap route to roads">
       <div class="switch"></div>
       <span class="snap-label"><i class="fa-solid fa-magnet"></i></span>
     </div>
+    <button class="grey-btn" id="grey-btn" title="Toggle greyscale map"><i class="fa-solid fa-circle-half-stroke"></i></button>
     <button class="elev-btn" id="elev-btn" title="Show elevation profile"><i class="fa-solid fa-mountain"></i></button>
     <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions"><i class="fa-regular fa-copyright"></i></button>
   </div>
@@ -1849,7 +1850,7 @@ let _autosaveRestored = false;
 function restoreAutosave() {
   if (_autosaveRestored) return;
   _autosaveRestored = true;
-  map.invalidateSize();
+  setTimeout(() => map.invalidateSize(), 260);
   try {
     const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
     if (data?.waypoints?.length) {
@@ -4045,6 +4046,7 @@ updateGpxPreview();
 // Collapse sidebar by default on small screens (iPhone etc.)
 if (window.innerWidth <= 500) {
   document.getElementById('sidebar').classList.add('collapsed');
+  setTimeout(() => map.invalidateSize(), 260);
 }
 // Safety-net: if the GL style fetch hasn't finished after 4 s (offline, slow
 // network) restore autosave anyway so the user isn't left with a blank state.
