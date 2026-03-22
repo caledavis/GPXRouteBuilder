@@ -249,8 +249,7 @@
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+    overflow: hidden;
     transition: width 0.25s ease, background 0.25s, border-color 0.25s;
     position: relative;
     z-index: 1001;
@@ -448,7 +447,7 @@
   #knoop-toggle.loading .names-toggle-switch { display: none; }
 
   /* ── waypoints ── */
-  .waypoints-section { flex: none; overflow: visible; display: flex; flex-direction: column; min-height: 0; }
+  .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 0; }
   .waypoints-header {
     padding: 12px 14px 8px;
     display: flex; align-items: center; justify-content: space-between;
@@ -458,7 +457,7 @@
   .waypoints-header h3 { font-size: 10px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--text-dim); text-transform: uppercase; }
   .waypoint-count { font-family: var(--mono); font-size: 11px; color: var(--accent); background: var(--accent-dim); padding: 2px 8px; border-radius: 10px; }
 
-  .waypoints-list { flex: none; overflow-y: visible; min-height: 120px; padding: 6px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
+  .waypoints-list { flex: 1; overflow-y: auto; min-height: 0; padding: 6px; -webkit-overflow-scrolling: touch; touch-action: pan-y; }
   .waypoints-list::-webkit-scrollbar { width: 4px; }
   .waypoints-list::-webkit-scrollbar-track { background: transparent; }
   .waypoints-list::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
@@ -502,6 +501,10 @@
     outline: none; cursor: pointer; padding: 0;
   }
   .seg-name-input:focus { border-bottom: 1px solid var(--accent2); cursor: text; }
+  .seg-dist-badge {
+    font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
+    color: var(--text-dim); flex-shrink: 0; white-space: nowrap;
+  }
   .seg-remove-btn {
     background: transparent; border: none; color: var(--text-dim);
     cursor: pointer; font-size: 10px; padding: 2px 4px;
@@ -1522,7 +1525,7 @@
       <h3>Route Name</h3>
       <input type="text" id="route-name" value="My Route" placeholder="Route name…">
       <div class="stats-row">
-        <div class="stat-box"><div class="stat-label">Elev</div><div class="stat-value" id="stat-points">—</div></div>
+        <div class="stat-box"><div class="stat-label">Elev Change</div><div class="stat-value" id="stat-points">—</div></div>
         <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
       </div>
     </div>
@@ -1535,6 +1538,7 @@
       <div class="waypoints-list" id="waypoints-list">
         <div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add<br>via points to your route</div>
       </div>
+      <div id="add-seg-container"></div>
       <div class="address-search-row">
         <input type="text" id="address-input" class="address-input" placeholder="Search address to add waypoint…" autocomplete="off" spellcheck="false">
         <button class="address-search-btn" id="address-search-btn" title="Add waypoint at address"><i class="fa-solid fa-plus"></i></button>
@@ -1850,7 +1854,7 @@ let _autosaveRestored = false;
 function restoreAutosave() {
   if (_autosaveRestored) return;
   _autosaveRestored = true;
-  setTimeout(() => map.invalidateSize(), 260);
+  setTimeout(() => { map.invalidateSize(); if (waypoints.length >= 2) updateRoute(); }, 300);
   try {
     const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
     if (data?.waypoints?.length) {
@@ -3110,6 +3114,16 @@ function splitSegmentAt(i) {
   }
   segments.splice(insertAfter + 1, 0, { name: `Segment ${segments.length + 1}`, startIndex: i });
   renderSidebar();
+  const list = document.getElementById('waypoints-list');
+  if (list) requestAnimationFrame(() => {
+    const headers = list.querySelectorAll('.seg-header');
+    const last = headers[headers.length - 1];
+    if (last) {
+      const headerTop = last.getBoundingClientRect().top;
+      const listTop   = list.getBoundingClientRect().top;
+      list.scrollTop += headerTop - listTop;
+    }
+  });
   updateGpxPreview();
   triggerAutosave();
 }
@@ -3164,6 +3178,19 @@ function updateSegmentsAfterDragReorder(from, to) {
   segments = segments.filter((s, i) => i === 0 || s.startIndex !== segments[i - 1].startIndex);
 }
 
+/* ── Per-segment distance (km) from segmentCache ── */
+function segmentDistKm(sIdx) {
+  const start = segments[sIdx].startIndex;
+  const end   = sIdx < segments.length - 1 ? segments[sIdx + 1].startIndex : waypoints.length - 1;
+  let d = 0;
+  for (let i = start; i < end; i++) {
+    const seg = segmentCache[i];
+    if (!seg) continue;
+    for (let j = 0; j < seg.length - 1; j++) d += map.distance(seg[j], seg[j + 1]);
+  }
+  return d / 1000;
+}
+
 /* ── Sidebar ── */
 function renderSidebar() {
   const list  = document.getElementById('waypoints-list');
@@ -3173,6 +3200,8 @@ function renderSidebar() {
   if (!count) {
     list.innerHTML = `<div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add<br>via points to your route</div>`;
     document.getElementById('split-badge').classList.remove('visible');
+    const addSegContainerEmpty = document.getElementById('add-seg-container');
+    if (addSegContainerEmpty) addSegContainerEmpty.innerHTML = '';
     return;
   }
   // Compute total GPX file count across all segments (for badge)
@@ -3234,9 +3263,12 @@ function renderSidebar() {
     const segSplit = segCount > MAX_PER_FILE;
 
     // Segment header
+    const segDist = segmentDistKm(sIdx);
+    const segDistLabel = segDist > 0 ? segDist.toFixed(1) + ' km' : '';
     html += `<div class="seg-header${isFirst ? ' seg-header-first' : ''}" data-seg="${sIdx}">
       <span class="seg-label-icon"><i class="fa-solid fa-diamond"></i></span>
       <input class="seg-name-input" value="${escapeHtml(seg.name)}" data-seg="${sIdx}" placeholder="Segment name…">
+      ${segDistLabel ? `<span class="seg-dist-badge">${segDistLabel}</span>` : ''}
       ${!isFirst ? `<button class="seg-remove-btn" data-seg="${sIdx}" title="Remove this segment split"><i class="fa-solid fa-xmark"></i></button>` : ''}
     </div>`;
 
@@ -3261,14 +3293,17 @@ function renderSidebar() {
     }
   });
 
+  list.innerHTML = html;
+
   // "Add new segment…" button — shown when there are ≥2 waypoints and the
   // last waypoint is not already a segment boundary
   const lastIsSegStart = segments.some((s, si) => si > 0 && s.startIndex === count - 1);
-  if (count > 1 && !lastIsSegStart) {
-    html += `<button class="add-seg-btn" onclick="splitSegmentAt(${count - 1})">+ Add new segment…</button>`;
+  const addSegContainer = document.getElementById('add-seg-container');
+  if (addSegContainer) {
+    addSegContainer.innerHTML = (count > 1 && !lastIsSegStart)
+      ? `<button class="add-seg-btn" onclick="splitSegmentAt(${count - 1})">+ Add new segment…</button>`
+      : '';
   }
-
-  list.innerHTML = html;
 
   // Icon picker — toggle between Flag and House (skip knooppunt waypoints)
   list.querySelectorAll('.wp-sym-btn').forEach(btn => {
@@ -4531,6 +4566,7 @@ function updateElevStat() {
 function onRouteUpdated() {
   if (elevOpen) drawElevation();
   updateElevStat();
+  renderSidebar();
 }
 
 /* ── Main draw function ── */
