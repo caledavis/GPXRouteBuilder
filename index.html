@@ -2610,7 +2610,7 @@ function openCtxMenu(x, y, i) {
   const mw = ctxMenu.offsetWidth, mh = ctxMenu.offsetHeight;
   ctxMenu.style.left = Math.min(x, window.innerWidth  - mw - 8) + 'px';
   ctxMenu.style.top  = Math.min(y, window.innerHeight - mh - 8) + 'px';
-  setTimeout(() => { nameInput.focus(); nameInput.select(); }, 30);
+  // nameInput focus intentionally omitted — user clicks to edit
 }
 
 function closeCtxMenu() {
