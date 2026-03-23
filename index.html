@@ -7,7 +7,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="GPX Builder">
 <title>GPX Route Builder</title>
+<link rel="icon" type="image/png" href="icon.png">
 <link rel="apple-touch-icon" href="icon.png">
+<meta name="theme-color" content="#ffffff">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link href="https://unpkg.com/maplibre-gl/dist/maplibre-gl.css" rel="stylesheet" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -259,6 +261,20 @@
   .sidebar::-webkit-scrollbar { width: 4px; }
   .sidebar::-webkit-scrollbar-track { background: transparent; }
   .sidebar::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
+
+  /* Scrollable wrapper for the top sidebar sections.
+     Shrinks and scrolls internally so the waypoints section (with its
+     bottom buttons) is never pushed off the bottom of the screen. */
+  .sidebar-top {
+    flex-shrink: 1;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+  .sidebar-top::-webkit-scrollbar { width: 4px; }
+  .sidebar-top::-webkit-scrollbar-track { background: transparent; }
+  .sidebar-top::-webkit-scrollbar-thumb { background: var(--scrollbar); border-radius: 2px; }
   .sidebar.collapsed { width: 32px; }
   .sidebar.collapsed .sidebar-section,
   .sidebar.collapsed .waypoints-section { display: none; }
@@ -452,7 +468,8 @@
   #knoop-toggle.loading .names-toggle-switch { display: none; }
 
   /* ── waypoints ── */
-  .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 350px; }
+  .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 430px; }
+  #add-seg-container { flex-shrink: 0; }
   .waypoints-header {
     padding: 12px 14px 8px;
     display: flex; align-items: center; justify-content: space-between;
@@ -1458,6 +1475,10 @@
       <button class="sidebar-toggle-btn" id="sidebar-collapsed-btn" title="Show sidebar"><i class="fa-solid fa-chevron-right"></i></button>
     </div>
 
+    <!-- Top sections scroll as a group when the viewport is short,
+         keeping the waypoints section (and its buttons) always visible. -->
+    <div class="sidebar-top">
+
     <div class="sidebar-section">
       <h3 style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
         Download &amp; Upload
@@ -1539,6 +1560,8 @@
         <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
       </div>
     </div>
+
+    </div><!-- /sidebar-top -->
 
     <div class="waypoints-section">
       <div class="waypoints-header">
