@@ -33,9 +33,11 @@ Navigating along _tracks_, however, is not good for navigation because:
 5. The option to upload GPX files as overlays (so, for example, you can see where you've cycled in the past);
 6. A greyscale toggle in case the map looks a bit too confusing;
 7. An elevation plot;
-8. You can share your route with just a URL;
-9. You can download your route and save it (just as a normal GPX file) and upload it again to work on it later;
-10. It makes standard GPX route files, and even "special" features like segments are just implemented by a comment line in the GPX file code.
+8. You can click a waypoint icon to turn it into a house (to denote where you're going to sleep, for example);
+9. If you are in The Netherlands or Belgium, you can show "knooppunten" on the map and click them to add them to the route (and they are given the name "Knp XX" so you can see on your GPS device when you are navigating to one of them);
+10. You can share your route with just a URL;
+11. You can download your route and save it (just as a normal GPX file) and upload it again to work on it later;
+12. It makes standard GPX route files, and even "special" features like segments are just implemented by a comment line in the GPX file code.
 ## How was it made?
 This tool was vibe coded with Claude using Sonnet 4.6.
 
