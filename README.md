@@ -1,4 +1,6 @@
-# GPXRouteBuilder
+<img width="1091" height="103" alt="logo" src="https://github.com/user-attachments/assets/3d326dae-edda-4f20-9d6e-c4be57242e1e" />
+
+## About
 Use the tool here: https://caledavis.github.io/GPXRouteBuilder/
 
 Plan a cycling trip with turn-by-turn navigation on your GPS.
