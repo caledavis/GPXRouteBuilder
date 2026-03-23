@@ -3199,7 +3199,9 @@ function reverseRoute() {
   }
   if (selectedIndex >= 0) selectedIndex = n - 1 - selectedIndex;
   newestIndex = -1;
+  resequenceNames();
   invalidateAllSegments();
+  refreshIcons();
   renderSidebar();
   updateRoute();
   updateGpxPreview();
