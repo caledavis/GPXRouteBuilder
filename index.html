@@ -533,6 +533,12 @@
     border-radius: 4px; flex-shrink: 0; line-height: 1;
   }
   .seg-remove-btn:hover { color: var(--danger); background: rgba(220,38,38,0.08); }
+  .route-reverse-btn {
+    background: transparent; border: none; color: var(--text-dim);
+    cursor: pointer; font-size: 10px; padding: 2px 4px;
+    border-radius: 4px; flex-shrink: 0; line-height: 1;
+  }
+  .route-reverse-btn:hover { color: var(--accent); background: rgba(99,102,241,0.1); }
 
   .add-seg-btn {
     display: block; width: calc(100% - 12px); margin: 4px 6px;
@@ -1485,13 +1491,13 @@
         <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar"><i class="fa-solid fa-chevron-left"></i></button>
       </h3>
       <div class="save-row">
-        <button class="save-btn" id="download-save-btn"><i class="fa-solid fa-download"></i> Download</button>
-        <label class="save-btn" for="import-route-input" style="cursor:pointer;"><i class="fa-solid fa-upload"></i> Upload GPX</label>
+        <button class="save-btn" id="download-save-btn" title="Save to work on later"><i class="fa-solid fa-download"></i> Download</button>
+        <label class="save-btn" for="import-route-input" style="cursor:pointer;" title="Work on a saved route"><i class="fa-solid fa-upload"></i> Upload GPX</label>
         <input type="file" id="import-route-input" accept=".gpx" style="display:none">
       </div>
       <div class="save-row">
-        <button class="save-btn" id="export-route-btn"><i class="fa-solid fa-file-export"></i> Export GPX</button>
-        <button class="save-btn" id="share-route-btn"><i class="fa-solid fa-link"></i> Copy Link</button>
+        <button class="save-btn" id="export-route-btn" title="Download GPX route files for your GPS"><i class="fa-solid fa-file-export"></i> Export GPX</button>
+        <button class="save-btn" id="share-route-btn" title="Share your route with a link"><i class="fa-solid fa-link"></i> Copy Link</button>
       </div>
       <div class="autosave-notice">
         <div class="autosave-dot" id="autosave-dot"></div>
@@ -3179,6 +3185,27 @@ function splitSegmentAt(i) {
   triggerAutosave();
 }
 
+function reverseRoute() {
+  if (waypoints.length < 2) return;
+  const n = waypoints.length;
+  waypoints.reverse();
+  // Preserve a snapshot of old startIndices before mutating
+  const oldStartIndices = segments.map(s => s.startIndex);
+  const k = segments.length - 1;
+  segments.reverse();
+  segments[0].startIndex = 0;
+  for (let j = 1; j < segments.length; j++) {
+    segments[j].startIndex = n - 1 - oldStartIndices[k + 1 - j];
+  }
+  if (selectedIndex >= 0) selectedIndex = n - 1 - selectedIndex;
+  newestIndex = -1;
+  invalidateAllSegments();
+  renderSidebar();
+  updateRoute();
+  updateGpxPreview();
+  triggerAutosave();
+}
+
 function removeSegmentSplit(segIdx) {
   if (segIdx <= 0 || segIdx >= segments.length) return;
   segments.splice(segIdx, 1);
@@ -3320,7 +3347,7 @@ function renderSidebar() {
       <span class="seg-label-icon"><i class="fa-solid fa-diamond"></i></span>
       <input class="seg-name-input" value="${escapeHtml(seg.name)}" data-seg="${sIdx}" placeholder="Segment name…">
       ${segDistLabel ? `<span class="seg-dist-badge">${segDistLabel}</span>` : ''}
-      ${!isFirst ? `<button class="seg-remove-btn" data-seg="${sIdx}" title="Remove this segment split"><i class="fa-solid fa-xmark"></i></button>` : ''}
+      ${!isFirst ? `<button class="seg-remove-btn" data-seg="${sIdx}" title="Remove this segment split"><i class="fa-solid fa-xmark"></i></button>` : `<button class="route-reverse-btn" title="Reverse the route"><i class="fa-solid fa-right-left"></i></button>`}
     </div>`;
 
     // Boundary echo for non-first segments (shared waypoint shown read-only)
@@ -3407,6 +3434,15 @@ function renderSidebar() {
       removeSegmentSplit(+btn.dataset.seg);
     });
   });
+
+  // Reverse route button (shown in first segment header slot)
+  const reverseBtn = list.querySelector('.route-reverse-btn');
+  if (reverseBtn) {
+    reverseBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      reverseRoute();
+    });
+  }
 
   // Boundary echo: click to select/fly-to the shared waypoint
   list.querySelectorAll('.wp-boundary-echo').forEach(el => {
