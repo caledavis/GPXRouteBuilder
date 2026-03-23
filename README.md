@@ -5,11 +5,12 @@ Use the tool here: https://caledavis.github.io/GPXRouteBuilder/
 
 Plan a cycling trip with turn-by-turn navigation on your GPS.
 
-This tool was designed for personal use to fill a gap in the tools which currently exist for planning cycling trips.
-## What does this do?
-There are a lot of online route planners that produce GPX _tracks_. But there are no free ones which allow you to create GPX _routes_. This one does.
+This tool was designed for personal use to fill a gap in the tools which currently exist for planning cycling trips. Since Garmin's BaseCamp is no longer regularly updated (and hasn't been for many years), I needed something to create GPX routes for my GPS device.
 
-In other words, it produces GPX routes where the routes are defined as <rte> and the route points as <rtept> elements.
+It was entirely vibe-coded with Claude.
+## What does this do?
+There are a lot of online route planners that produce GPX _tracks_, with <trk> and <trkpt> elements. But there are no free ones which allow you to create GPX _routes_, with <rte> and <rtept> elements. This one does.
+
 ## What are GPX waypoints, tracks, and routes?
 A GPX file contains waypoints, tracks, and routes. They serve different purposes.
 - A waypoint is simply a point on a map, such as a cafe or your home address.
@@ -35,6 +36,6 @@ Navigating along _tracks_, however, is not good for navigation because:
 ## How was it made?
 This tool was vibe coded with Claude using Sonnet 4.6.
 
-It makes use of other free tools, which are credited in the attributins box.
+It makes use of other free tools, which are credited in the attributions box.
 
 Because of that, it is free and open-source. No accounts, no costs, no nothing.
