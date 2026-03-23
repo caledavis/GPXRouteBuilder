@@ -3687,7 +3687,10 @@ function buildSaveGpxContent() {
     if (segByIndex.has(i)) {
       lines.push(`    <!-- gpx-route-builder:segment name="${escapeXml(segByIndex.get(i))}" -->`);
     }
-    lines.push(`    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <name>${escapeXml(wp.name)}</name>\n      <sym>${escapeXml(wp._gpxSym || wp.sym || 'Flag, Blue')}</sym>\n    </rtept>`);
+    const knoopExt = wp.sym === 'knoop'
+      ? `\n      <extensions><knoop ref="${escapeXml(String(wp.knoopRef ?? ''))}" color="${escapeXml(wp.knoopColor || '#007d00')}"/></extensions>`
+      : '';
+    lines.push(`    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <name>${escapeXml(wp.name)}</name>\n      <sym>${escapeXml(wp._gpxSym || wp.sym || 'Flag, Blue')}</sym>${knoopExt}\n    </rtept>`);
   });
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -3720,9 +3723,12 @@ function downloadSave() {
 }
 
 function gpxXml(routeName, ts, pts) {
-  const rtepts = pts.map(wp =>
-    `    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <name>${escapeXml(wp.name)}</name>\n      <sym>${escapeXml(wp._gpxSym || wp.sym || 'Flag, Blue')}</sym>\n    </rtept>`
-  ).join('\n');
+  const rtepts = pts.map(wp => {
+    const knoopExt = wp.sym === 'knoop'
+      ? `\n      <extensions><knoop ref="${escapeXml(String(wp.knoopRef ?? ''))}" color="${escapeXml(wp.knoopColor || '#007d00')}"/></extensions>`
+      : '';
+    return `    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <name>${escapeXml(wp.name)}</name>\n      <sym>${escapeXml(wp._gpxSym || wp.sym || 'Flag, Blue')}</sym>${knoopExt}\n    </rtept>`;
+  }).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1"
      creator="GPX Route Builder"
@@ -4129,9 +4135,16 @@ document.getElementById('import-route-input').addEventListener('change', functio
         const lat  = parseFloat(pt.getAttribute('lat'));
         const lon  = parseFloat(pt.getAttribute('lon'));
         if (isNaN(lat) || isNaN(lon)) return;
-        const name = pt.querySelector('name')?.textContent?.trim() || '';
-        const sym  = pt.querySelector('sym')?.textContent?.trim() || 'Flag, Blue';
-        pts.push({ lat, lng: lon, name, sym });
+        const name    = pt.querySelector('name')?.textContent?.trim() || '';
+        const sym     = pt.querySelector('sym')?.textContent?.trim() || 'Flag, Blue';
+        const knoopEl = pt.querySelector('extensions > knoop');
+        if (knoopEl) {
+          pts.push({ lat, lng: lon, name, sym: 'knoop',
+            knoopRef:   knoopEl.getAttribute('ref')   || '?',
+            knoopColor: knoopEl.getAttribute('color') || '#007d00' });
+        } else {
+          pts.push({ lat, lng: lon, name, sym });
+        }
       });
 
       if (!pts.length) throw new Error('No points found');
