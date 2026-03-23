@@ -562,13 +562,14 @@
     gap: 2px;
     justify-content: center;
     align-items: center;
-    width: 10px;
+    width: 22px;
     flex-shrink: 0;
     cursor: grab;
     opacity: 0.3;
     transition: opacity 0.15s;
-    padding: 2px 0;
-    self-select: none;
+    padding: 2px 6px;
+    user-select: none;
+    -webkit-user-select: none;
     touch-action: none;
   }
   .wp-drag:active { cursor: grabbing; }
@@ -1463,9 +1464,13 @@
         <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" title="Hide sidebar"><i class="fa-solid fa-chevron-left"></i></button>
       </h3>
       <div class="save-row">
-        <button class="save-btn" id="export-route-btn"><i class="fa-solid fa-download"></i> Download GPX</button>
+        <button class="save-btn" id="download-save-btn"><i class="fa-solid fa-download"></i> Download</button>
         <label class="save-btn" for="import-route-input" style="cursor:pointer;"><i class="fa-solid fa-upload"></i> Upload GPX</label>
         <input type="file" id="import-route-input" accept=".gpx" style="display:none">
+      </div>
+      <div class="save-row">
+        <button class="save-btn" id="export-route-btn"><i class="fa-solid fa-file-export"></i> Export GPX</button>
+        <button class="save-btn" id="share-route-btn"><i class="fa-solid fa-link"></i> Copy Link</button>
       </div>
       <div class="autosave-notice">
         <div class="autosave-dot" id="autosave-dot"></div>
@@ -1860,6 +1865,8 @@ function restoreAutosave() {
   if (_autosaveRestored) return;
   _autosaveRestored = true;
   setTimeout(() => { map.invalidateSize(); if (waypoints.length >= 2) updateRoute(); }, 300);
+  // Shared link takes priority over autosave
+  if (restoreFromHash()) return;
   try {
     const data = JSON.parse(localStorage.getItem(AUTOSAVE_KEY) || 'null');
     if (data?.waypoints?.length) {
@@ -3649,6 +3656,53 @@ function buildGpxFiles() {
   return files;
 }
 
+/* ── Single-file save GPX (with segment markers) ── */
+function buildSaveGpxContent() {
+  const name     = (document.getElementById('route-name').value || 'My Route').trim();
+  const now      = new Date().toISOString();
+  const total    = waypoints.length;
+  const annotated = waypoints.map((wp, i) => ({ ...wp, _gpxSym: gpxSym(wp, i, total) }));
+
+  // Build sorted segment-start index map
+  const segByIndex = new Map(segments.map(s => [s.startIndex, s.name]));
+
+  const lines = [];
+  annotated.forEach((wp, i) => {
+    if (segByIndex.has(i)) {
+      lines.push(`    <!-- gpx-route-builder:segment name="${escapeXml(segByIndex.get(i))}" -->`);
+    }
+    lines.push(`    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <name>${escapeXml(wp.name)}</name>\n      <sym>${escapeXml(wp._gpxSym || wp.sym || 'Flag, Blue')}</sym>\n    </rtept>`);
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1"
+     creator="GPX Route Builder"
+     xmlns="http://www.topografix.com/GPX/1/1"
+     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+     xsi:schemaLocation="http://www.topografix.com/GPX/1/1
+       http://www.topografix.com/GPX/1/1/gpx.xsd">
+  <metadata>
+    <name>${escapeXml(name)}</name>
+    <time>${now}</time>
+  </metadata>
+  <rte>
+    <name>${escapeXml(name)}</name>
+${lines.join('\n')}
+  </rte>
+</gpx>`;
+}
+
+function downloadSave() {
+  if (!waypoints.length) { alert('No waypoints to download.'); return; }
+  const name    = (document.getElementById('route-name').value || 'My Route').trim();
+  const content = buildSaveGpxContent();
+  const blob    = new Blob([content], { type: 'application/gpx+xml' });
+  const url     = URL.createObjectURL(blob);
+  const a       = document.createElement('a');
+  a.href = url; a.download = sanitize(name) + '.gpx'; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function gpxXml(routeName, ts, pts) {
   const rtepts = pts.map(wp =>
     `    <rtept lat="${wp.lat.toFixed(7)}" lon="${wp.lng.toFixed(7)}">\n      <name>${escapeXml(wp.name)}</name>\n      <sym>${escapeXml(wp._gpxSym || wp.sym || 'Flag, Blue')}</sym>\n    </rtept>`
@@ -3937,6 +3991,40 @@ function triggerAutosave() {
   }, 800);  // debounce — save 800ms after last change
 }
 
+/* ── Share route via URL hash ── */
+function shareRoute() {
+  if (!waypoints.length) { alert('No waypoints to share.'); return; }
+  const data    = serialiseRoute();
+  const json    = JSON.stringify(data);
+  const encoded = btoa(unescape(encodeURIComponent(json)));
+  const url     = location.href.split('#')[0] + '#share=' + encoded;
+  const btn     = document.getElementById('share-route-btn');
+  navigator.clipboard.writeText(url).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<i class="fa-solid fa-check"></i> Copied!';
+    setTimeout(() => { btn.innerHTML = orig; }, 2000);
+  }).catch(() => {
+    prompt('Copy this link to share your route:', url);
+  });
+}
+
+function restoreFromHash() {
+  if (!location.hash.startsWith('#share=')) return false;
+  try {
+    const encoded = location.hash.slice(7);
+    const json    = decodeURIComponent(escape(atob(encoded)));
+    const data    = JSON.parse(json);
+    if (!data?.waypoints?.length) return false;
+    if (data.snapEnabled) {
+      snapEnabled = true;
+      document.getElementById('snap-toggle').classList.add('active');
+    }
+    deserialiseRoute(data);
+    document.getElementById('autosave-label').textContent = 'Loaded from shared link';
+    return true;
+  } catch(_) { return false; }
+}
+
 /* ── Export as GPX file(s) ── */
 function exportRoute() {
   if (!waypoints.length) { alert('No waypoints to export.'); return; }
@@ -3962,11 +4050,28 @@ document.getElementById('import-route-input').addEventListener('change', functio
       if (doc.querySelector('parsererror')) throw new Error('Parse error');
 
       const pts = [];
+      let importedSegments = null;
 
       // Try route points first (<rtept>), then track points (<trkpt>), then waypoints (<wpt>)
       const rtepts = doc.querySelectorAll('rtept');
       const trkpts = doc.querySelectorAll('trkpt');
       const wpts   = doc.querySelectorAll('wpt');
+
+      // Check for GPX Route Builder segment markers in the <rte> element's comments
+      const rteEl = doc.querySelector('rte');
+      if (rteEl && rtepts.length) {
+        const segsFromComments = [];
+        let wpCount = 0;
+        rteEl.childNodes.forEach(node => {
+          if (node.nodeType === 8) { // Comment node
+            const m = node.nodeValue.trim().match(/^gpx-route-builder:segment name="([^"]*)"$/);
+            if (m) segsFromComments.push({ name: m[1], startIndex: wpCount });
+          } else if (node.nodeType === 1 && node.localName === 'rtept') {
+            wpCount++;
+          }
+        });
+        if (segsFromComments.length) importedSegments = segsFromComments;
+      }
 
       const source = rtepts.length ? rtepts : trkpts.length ? trkpts : wpts;
       source.forEach(pt => {
@@ -3986,7 +4091,7 @@ document.getElementById('import-route-input').addEventListener('change', functio
                     || doc.querySelector('trk > name')?.textContent?.trim()
                     || file.name.replace(/\.gpx$/i, '');
 
-      deserialiseRoute({ name: metaName, waypoints: pts, savedAt: Date.now() });
+      deserialiseRoute({ name: metaName, waypoints: pts, segments: importedSegments || undefined, savedAt: Date.now() });
     } catch(err) {
       alert('Could not read this GPX file. Make sure it contains route points, track points, or waypoints.');
     }
@@ -3997,6 +4102,8 @@ document.getElementById('import-route-input').addEventListener('change', functio
 
 /* ── Wire up buttons ── */
 document.getElementById('export-route-btn').addEventListener('click', exportRoute);
+document.getElementById('download-save-btn').addEventListener('click', downloadSave);
+document.getElementById('share-route-btn').addEventListener('click', shareRoute);
 
 /* ── Address search (Nominatim) ── */
 (function initAddressSearch() {
