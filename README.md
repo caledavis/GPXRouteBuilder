@@ -9,7 +9,7 @@ This tool was designed for personal use to fill a gap in the tools which current
 
 It was entirely vibe-coded with Claude.
 ## What does this do?
-There are a lot of online route planners that produce GPX _tracks_, with <trk> and <trkpt> elements. But there are no free ones which allow you to create GPX _routes_, with <rte> and <rtept> elements. This one does.
+There are a lot of online route planners that produce GPX _tracks_, with `<trk>` and `<trkpt>` elements. But there are no free ones which allow you to create GPX _routes_, with `<rte>` and `<rtept>` elements. This one does.
 
 ## What are GPX waypoints, tracks, and routes?
 A GPX file contains waypoints, tracks, and routes. They serve different purposes.
@@ -33,6 +33,9 @@ Navigating along _tracks_, however, is not good for navigation because:
 5. The option to upload GPX files as overlays (so, for example, you can see where you've cycled in the past);
 6. A greyscale toggle in case the map looks a bit too confusing;
 7. An elevation plot;
+8. You can share your route with just a URL;
+9. You can download your route and save it (just as a normal GPX file) and upload it again to work on it later;
+10. It makes standard GPX route files, and even "special" features like segments are just implemented by a comment line in the GPX file code.
 ## How was it made?
 This tool was vibe coded with Claude using Sonnet 4.6.
 
