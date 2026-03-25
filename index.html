@@ -21,12 +21,12 @@
     --bg:          #f0f2f7;
     --surface:     #ffffff;
     --surface2:    #f7f8fc;
-    --border:      #d1d9e6;
+    --border:      #c4cdd9;
     --accent:      #16a34a;
     --accent2:     #0891b2;
     --accent-dim:  rgba(22,163,74,0.10);
     --text:        #1e293b;
-    --text-dim:    #64748b;
+    --text-dim:    #4a5568;
     --danger:      #dc2626;
     --scrollbar:   #cbd5e1;
     --dl-text:     #ffffff;
@@ -469,7 +469,6 @@
 
   /* ── waypoints ── */
   .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 430px; }
-  #add-seg-container { flex-shrink: 0; }
   .waypoints-header {
     padding: 12px 14px 8px;
     display: flex; align-items: center; justify-content: space-between;
@@ -511,7 +510,7 @@
   /* ── User-defined segment headers ── */
   .seg-header {
     display: flex; align-items: center; gap: 5px;
-    padding: 10px 4px 5px; margin-top: 6px;
+    padding: 10px 4px 2px; margin-top: 6px;
     border-top: 2px solid var(--accent2);
   }
   .seg-header.seg-header-first { margin-top: 0; border-top: none; padding-top: 4px; }
@@ -524,7 +523,7 @@
   }
   .seg-name-input:focus { border-bottom: 1px solid var(--accent2); cursor: text; }
   .seg-dist-badge {
-    font-family: var(--mono); font-size: 9px; letter-spacing: 0.06em;
+    font-family: var(--mono); font-size: 10px; letter-spacing: 0.06em;
     color: var(--text-dim); flex-shrink: 0; white-space: nowrap;
   }
   .seg-remove-btn {
@@ -548,13 +547,16 @@
     letter-spacing: 0.05em; cursor: pointer; text-align: left;
     transition: all 0.2s;
   }
-  .add-seg-btn:hover { background: rgba(8,145,178,0.08); border-color: var(--accent2); }
+  .add-seg-btn:hover:not(:disabled) { background: rgba(8,145,178,0.08); border-color: var(--accent2); }
+  .add-seg-btn:disabled {
+    color: var(--text-dim); border-color: var(--border); opacity: 0.45; cursor: default;
+  }
 
   /* ── Boundary echo: shared waypoint shown at top of new segment ── */
   .wp-boundary-echo {
     opacity: 0.55; border-color: transparent !important;
     background: transparent !important; cursor: default !important;
-    padding-left: 10px;
+    padding: 1px 8px 1px 10px; margin-bottom: 2px;
   }
   .wp-boundary-echo:hover { border-color: transparent !important; background: transparent !important; }
   .wp-echo-icon { color: var(--text-dim); font-size: 10px; flex-shrink: 0; margin-right: 2px; }
@@ -565,6 +567,7 @@
     background: transparent; border: none; color: var(--text);
     font-family: var(--sans); font-size: 11px; font-weight: 500;
     width: 100%; outline: none; padding: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .wp-name-input:focus { color: var(--accent2); }
   .wp-actions { display: flex; gap: 3px; flex-shrink: 0; }
@@ -576,8 +579,21 @@
     font-size: 11px; transition: all 0.15s;
   }
   .wp-btn:hover        { border-color: var(--danger);  color: var(--danger);  background: rgba(220,38,38,0.1); }
-  .wp-btn.up:hover,
-  .wp-btn.down:hover   { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.1); }
+
+  .wp-dist {
+    display: flex; align-items: stretch; flex-shrink: 0; gap: 8px;
+  }
+  .wp-dist-col {
+    display: flex; flex-direction: column; align-items: flex-end; justify-content: center;
+  }
+  .wp-dist-col-lbl {
+    font-size: 8px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase;
+    opacity: 0.65; line-height: 1.3;
+  }
+  .wp-dist-col-lbl.lbl-rte { color: var(--text-dim); }
+  .wp-dist-col-lbl.lbl-seg { color: var(--accent2); }
+  .wp-dist-route   { color: var(--text-dim); font-size: 11px; font-weight: 400; white-space: nowrap; }
+  .wp-dist-seg-val { color: var(--accent2);  font-size: 11px; font-weight: 400; white-space: nowrap; }
 
   .wp-drag {
     display: flex;
@@ -822,22 +838,22 @@
   /* ── custom markers ── */
   .custom-marker {
     width: 28px; height: 28px;
-    border: 2.5px solid #2563eb; background: #fff;
+    border: 2.5px solid #0891b2; background: #fff;
     border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
     display: flex; align-items: center; justify-content: center;
-    font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700; color: #2563eb;
+    font-family: 'IBM Plex Mono', monospace; font-size: 9px; font-weight: 700; color: #0891b2;
     box-shadow: 0 2px 8px rgba(0,0,0,0.22);
   }
   .custom-marker span { transform: rotate(45deg); display: block; line-height: 1; }
   .custom-marker.first {
-    border-color: #16a34a !important; background: #ffffff !important; color: #16a34a !important;
+    border-color: #ffffff !important; background: #16a34a !important; color: #ffffff !important;
   }
   .custom-marker.last {
-    border-color: #dc2626 !important; background: #fff !important; color: #dc2626 !important;
+    border-color: #ffffff !important; background: #dc2626 !important; color: #ffffff !important;
   }
 
   .custom-marker.house {
-    border-color: #ca8a04 !important; background: #ffffff !important; color: #ca8a04 !important;
+    border-color: #d97706 !important; background: #ffffff !important; color: #d97706 !important;
   }
 
   .wp-sym-btn {
@@ -854,8 +870,8 @@
   .wp-sym-btn:hover { border-color: var(--accent2); background: rgba(8,145,178,0.08); }
   .wp-sym-btn.flag-first { border-color: #16a34a; background: rgba(22,163,74,0.10); }
   .wp-sym-btn.flag-last  { border-color: #dc2626; background: rgba(220,38,38,0.10); }
-  .wp-sym-btn.flag-mid   { border-color: #2563eb; background: rgba(37,99,235,0.10); }
-  .wp-sym-btn.house      { border-color: #ca8a04; background: rgba(202,138,4,0.10); }
+  .wp-sym-btn.flag-mid   { border-color: #0891b2; background: rgba(8,145,178,0.10); }
+  .wp-sym-btn.house      { border-color: #d97706; background: rgba(217,119,6,0.10); }
   .route-label {
     display: inline-block;
     background: rgba(255,255,255,0.95);
@@ -930,10 +946,10 @@
     gap: 7px;
     width: 100%;
     padding: 8px 10px;
-    background: var(--accent-dim);
-    border: 1px dashed var(--accent);
+    background: transparent;
+    border: 1px dashed var(--border);
     border-radius: 7px;
-    color: var(--accent);
+    color: var(--text-dim);
     font-family: var(--mono);
     font-size: 11px;
     letter-spacing: 0.04em;
@@ -941,7 +957,7 @@
     transition: background 0.2s, border-color 0.2s;
     user-select: none;
   }
-  .gpx-upload-label:hover { background: rgba(22,163,74,0.18); }
+  .gpx-upload-label:hover { background: var(--surface2); border-color: var(--text-dim); }
 
   .gpx-file-row {
     display: flex;
@@ -1007,7 +1023,7 @@
   /* Ghost marker shown when hovering over a route segment */
   .ghost-marker {
     width: 22px; height: 22px;
-    border: 2.5px dashed #2563eb;
+    border: 2.5px dashed #0891b2;
     background: rgba(29,111,232,0.15);
     border-radius: 50% 50% 50% 0;
     transform: rotate(-45deg);
@@ -1299,6 +1315,7 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     padding: 5px;
     min-width: 160px;
+    max-width: 240px;
     display: none;
     flex-direction: column;
     gap: 1px;
@@ -1313,6 +1330,7 @@
     text-transform: uppercase;
     color: var(--text-dim);
     padding: 5px 10px 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .ctx-menu-item {
     display: flex;
@@ -1349,6 +1367,7 @@
     outline: none;
     box-sizing: border-box;
     transition: border-color 0.15s;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .ctx-name-input:focus { border-color: var(--accent2); }
   /* ── Elevation panel ── */
@@ -1438,6 +1457,7 @@
   }
   .elev-btn:hover  { border-color: var(--accent); color: var(--accent); background: var(--accent-dim); }
   .elev-btn.active { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
+
 </style>
 <script data-goatcounter="https://caledavis.goatcounter.com/count"
         async src="//gc.zgo.at/count.js"></script>
@@ -1468,7 +1488,7 @@
     </div>
     <button class="grey-btn" id="grey-btn" title="Toggle greyscale map"><i class="fa-solid fa-circle-half-stroke"></i></button>
     <button class="elev-btn" id="elev-btn" title="Show elevation profile"><i class="fa-solid fa-mountain"></i></button>
-    <button class="attr-btn" id="attr-btn" title="Licences &amp; attributions"><i class="fa-regular fa-copyright"></i></button>
+<button class="attr-btn" id="attr-btn" title="Licences &amp; attributions"><i class="fa-regular fa-copyright"></i></button>
   </div>
 </header>
 
@@ -1577,7 +1597,7 @@
       <div class="waypoints-list" id="waypoints-list">
         <div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add<br>via points to your route</div>
       </div>
-      <div id="add-seg-container"></div>
+      <button class="add-seg-btn" id="add-seg-btn" disabled>+ Add new segment…</button>
       <div class="address-search-row">
         <input type="text" id="address-input" class="address-input" placeholder="Search address to add waypoint…" autocomplete="off" spellcheck="false">
         <button class="address-search-btn" id="address-search-btn" title="Add waypoint at address"><i class="fa-solid fa-plus"></i></button>
@@ -2508,9 +2528,9 @@ function createIcon(i, total, sym) {
   const isHouse = sym === 'Residence';
   let cls, houseColor;
   if (isHouse) {
-    if (i === 0)            { cls = 'custom-marker first'; houseColor = '#16a34a'; }
-    else if (i === total-1) { cls = 'custom-marker last';  houseColor = '#dc2626'; }
-    else                    { cls = 'custom-marker house'; houseColor = '#ca8a04'; }
+    if (i === 0)            { cls = 'custom-marker first'; houseColor = '#ffffff'; }
+    else if (i === total-1) { cls = 'custom-marker last';  houseColor = '#ffffff'; }
+    else                    { cls = 'custom-marker house'; houseColor = '#d97706'; }
   } else {
     cls = i === 0 ? 'custom-marker first' : i === total - 1 ? 'custom-marker last' : 'custom-marker';
   }
@@ -2583,7 +2603,7 @@ function openCtxMenu(x, y, i) {
   // Hide the flag↔house toggle entirely for knooppunt waypoints
   document.getElementById('ctx-icon').style.display = isKnoop ? 'none' : '';
   if (!isKnoop) {
-    document.getElementById('ctx-icon-svg').innerHTML = isHouse ? svgFlag('#2563eb') : svgHouse('#ca8a04');
+    document.getElementById('ctx-icon-svg').innerHTML = isHouse ? svgFlag('#0891b2') : svgHouse('#d97706');
     document.getElementById('ctx-icon-label').textContent = isHouse ? 'Change to Flag' : 'Change to House';
   }
 
@@ -2723,6 +2743,12 @@ function attachMarkerEvents(marker) {
       suppressMapClick = true;
       setTimeout(() => { suppressMapClick = false; }, 300);
       const i = waypoints.findIndex(w => w.marker === marker);
+      if (i >= 0) selectWaypoint(i);
+    });
+    el.addEventListener('contextmenu', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      const i = waypoints.findIndex(w => w.marker === marker);
       if (i >= 0) openCtxMenu(e.clientX, e.clientY, i);
     });
   }, 0);
@@ -2815,7 +2841,7 @@ function setRoutedByBadge(svc) {
   if (!svc || !snapEnabled) { badge.classList.remove('visible'); return; }
   const label    = SERVICE_LABELS[svc] || svc;
   const fellBack = svc === 'valhalla';
-  badge.textContent = `Route: ${label}`;
+  badge.textContent = label;
   badge.title       = fellBack ? 'BRouter was unavailable — routed via Valhalla instead' : 'Routed via BRouter';
   badge.classList.add('visible');
 }
@@ -3165,6 +3191,8 @@ function svgHouse(color) {
 function splitSegmentAt(i) {
   if (i <= 0 || i >= waypoints.length) return;
   if (segments.some((s, si) => si > 0 && s.startIndex === i)) return;
+  document.getElementById('add-seg-btn').disabled = true;
+  newestIndex = -1;
   let insertAfter = 0;
   for (let s = 0; s < segments.length; s++) {
     if (segments[s].startIndex <= i) insertAfter = s;
@@ -3172,15 +3200,7 @@ function splitSegmentAt(i) {
   segments.splice(insertAfter + 1, 0, { name: `Segment ${segments.length + 1}`, startIndex: i });
   renderSidebar();
   const list = document.getElementById('waypoints-list');
-  if (list) requestAnimationFrame(() => {
-    const headers = list.querySelectorAll('.seg-header');
-    const last = headers[headers.length - 1];
-    if (last) {
-      const headerTop = last.getBoundingClientRect().top;
-      const listTop   = list.getBoundingClientRect().top;
-      list.scrollTop += headerTop - listTop;
-    }
-  });
+  if (list) setTimeout(() => { list.scrollTop = list.scrollHeight; }, 50);
   updateGpxPreview();
   triggerAutosave();
 }
@@ -3275,13 +3295,13 @@ function segmentDistKm(sIdx) {
 function renderSidebar() {
   const list  = document.getElementById('waypoints-list');
   const count = waypoints.length;
+  const prevScroll = list ? list.scrollTop : 0;
   document.getElementById('wp-count').textContent    = count;
   updateElevStat();
   if (!count) {
     list.innerHTML = `<div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add<br>via points to your route</div>`;
     document.getElementById('split-badge').classList.remove('visible');
-    const addSegContainerEmpty = document.getElementById('add-seg-container');
-    if (addSegContainerEmpty) addSegContainerEmpty.innerHTML = '';
+    document.getElementById('add-seg-btn').disabled = true;
     return;
   }
   // Compute total GPX file count across all segments (for badge)
@@ -3292,7 +3312,16 @@ function renderSidebar() {
     totalFiles   += Math.ceil((end - start + 1) / MAX_PER_FILE);
   });
 
-  function wpItemHtml(wp, i) {
+  // Precompute cumulative distances (meters) from route start for each waypoint
+  const cumulDistM = new Array(count).fill(0);
+  for (let k = 1; k < count; k++) {
+    const cacheSeg = segmentCache[k - 1];
+    let d = 0;
+    if (cacheSeg) for (let j = 0; j < cacheSeg.length - 1; j++) d += map.distance(cacheSeg[j], cacheSeg[j + 1]);
+    cumulDistM[k] = cumulDistM[k - 1] + d;
+  }
+
+  function wpItemHtml(wp, i, distFromStart, distFromSeg, showSegDist) {
     const isKnoop = wp.sym === 'knoop';
     const isHouse = wp.sym === 'Residence';
     let symEl;
@@ -3308,13 +3337,13 @@ function renderSidebar() {
       if (isHouse) {
         if (i === 0)           { symClass = 'flag-first'; symSvg = svgHouse('#16a34a'); }
         else if (i === count-1){ symClass = 'flag-last';  symSvg = svgHouse('#dc2626'); }
-        else                   { symClass = 'house';      symSvg = svgHouse('#ca8a04'); }
+        else                   { symClass = 'house';      symSvg = svgHouse('#d97706'); }
       } else if (i === 0) {
         symClass = 'flag-first'; symSvg = svgFlag('#16a34a');
       } else if (i === count - 1) {
         symClass = 'flag-last';  symSvg = svgFlag('#dc2626');
       } else {
-        symClass = 'flag-mid';   symSvg = svgFlag('#2563eb');
+        symClass = 'flag-mid';   symSvg = svgFlag('#0891b2');
       }
       symEl = `<button class="wp-sym-btn ${symClass}" data-index="${i}" title="Change waypoint icon">${symSvg}</button>`;
     }
@@ -3326,9 +3355,11 @@ function renderSidebar() {
         <input class="wp-name-input" value="${escapeHtml(wp.name)}" data-index="${i}" placeholder="Point name…">
       </div>
       <div class="wp-actions">
-        <button class="wp-btn up"   title="Move up"   onclick="moveWaypoint(${i},-1)"><i class="fa-solid fa-arrow-up"></i></button>
-        <button class="wp-btn down" title="Move down" onclick="moveWaypoint(${i}, 1)"><i class="fa-solid fa-arrow-down"></i></button>
-        <button class="wp-btn"      title="Delete"    onclick="removeWaypoint(${i})"><i class="fa-solid fa-xmark"></i></button>
+        <div class="wp-dist">
+          ${showSegDist ? `<div class="wp-dist-col"><span class="wp-dist-col-lbl lbl-seg">Seg</span><span class="wp-dist-seg-val">${distFromSeg.toFixed(1)}&nbsp;km</span></div>` : ''}
+          <div class="wp-dist-col"><span class="wp-dist-col-lbl lbl-rte">Rte</span><span class="wp-dist-route">${distFromStart.toFixed(1)}&nbsp;km</span></div>
+        </div>
+        <button class="wp-btn" title="Delete" onclick="removeWaypoint(${i})"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>`;
   }
@@ -3346,7 +3377,7 @@ function renderSidebar() {
     const segDist = segmentDistKm(sIdx);
     const segDistLabel = segDist > 0 ? segDist.toFixed(1) + ' km' : '';
     html += `<div class="seg-header${isFirst ? ' seg-header-first' : ''}" data-seg="${sIdx}">
-      <span class="seg-label-icon"><i class="fa-solid fa-diamond"></i></span>
+      <span class="seg-label-icon"><i class="fa-solid fa-arrow-right"></i></span>
       <input class="seg-name-input" value="${escapeHtml(seg.name)}" data-seg="${sIdx}" placeholder="Segment name…">
       ${segDistLabel ? `<span class="seg-dist-badge">${segDistLabel}</span>` : ''}
       ${!isFirst ? `<button class="seg-remove-btn" data-seg="${sIdx}" title="Remove this segment split"><i class="fa-solid fa-xmark"></i></button>` : `<button class="route-reverse-btn" title="Reverse the route"><i class="fa-solid fa-right-left"></i></button>`}
@@ -3369,21 +3400,18 @@ function renderSidebar() {
         const f = Math.floor(localIdx / MAX_PER_FILE) + 1;
         html += `<div class="segment-divider"><i class="fa-solid fa-scissors"></i> PART ${f}/${segFiles}</div>`;
       }
-      html += wpItemHtml(waypoints[i], i);
+      html += wpItemHtml(waypoints[i], i, cumulDistM[i] / 1000, (cumulDistM[i] - cumulDistM[start]) / 1000, segments.length > 1 && sIdx > 0);
     }
   });
 
   list.innerHTML = html;
 
-  // "Add new segment…" button — shown when there are ≥2 waypoints and the
+  list.scrollTop = prevScroll;
+
+  // "Add new segment…" button — enabled when there are ≥2 waypoints and the
   // last waypoint is not already a segment boundary
   const lastIsSegStart = segments.some((s, si) => si > 0 && s.startIndex === count - 1);
-  const addSegContainer = document.getElementById('add-seg-container');
-  if (addSegContainer) {
-    addSegContainer.innerHTML = (count > 1 && !lastIsSegStart)
-      ? `<button class="add-seg-btn" onclick="splitSegmentAt(${count - 1})">+ Add new segment…</button>`
-      : '';
-  }
+  document.getElementById('add-seg-btn').disabled = !(count > 1 && !lastIsSegStart);
 
   // Icon picker — toggle between Flag and House (skip knooppunt waypoints)
   list.querySelectorAll('.wp-sym-btn').forEach(btn => {
@@ -3457,6 +3485,7 @@ function renderSidebar() {
   list.querySelectorAll('.wp-name-input').forEach(inp => {
     inp.addEventListener('input', e => { waypoints[+e.target.dataset.index].name = e.target.value; updateGpxPreview(); if (elevOpen) drawElevation(); });
     inp.addEventListener('click', e => e.stopPropagation());
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); inp.blur(); } });
   });
   list.querySelectorAll('.waypoint-item:not(.wp-boundary-echo)').forEach(el => {
     el.addEventListener('click', () => selectWaypoint(+el.dataset.index));
@@ -4496,6 +4525,7 @@ setTimeout(restoreAutosave, 4000);
 /* ── Attributions modal ── */
 const attrModal = document.getElementById('attr-modal');
 document.getElementById('attr-btn').addEventListener('click', () => attrModal.classList.add('open'));
+document.getElementById('add-seg-btn').addEventListener('click', () => { if (!document.getElementById('add-seg-btn').disabled) splitSegmentAt(waypoints.length - 1); });
 document.getElementById('attr-modal-close').addEventListener('click', () => attrModal.classList.remove('open'));
 attrModal.addEventListener('click', e => { if (e.target === attrModal) attrModal.classList.remove('open'); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { attrModal.classList.remove('open'); closeCtxMenu(); closeRouteCtxMenu(); } });
@@ -4616,7 +4646,7 @@ document.addEventListener('click', e => {
 let elevOpen = false;
 let elevView = { xMin: 0, xMax: 1 };  // normalised [0,1] zoom window over the route distance
 
-const ELEV_PAD = { top: 18, right: 10, bottom: 22, left: 40 };
+const ELEV_PAD = { top: 30, right: 10, bottom: 22, left: 40 };
 
 const elevPanel  = document.getElementById('elev-panel');
 const elevBtn    = document.getElementById('elev-btn');
@@ -4875,7 +4905,7 @@ function drawElevation() {
   elevStats.innerHTML =
     '<span class="elev-stat">&#8593; <span class="elev-stat-val">' + Math.round(ascent)  + ' m</span></span>' +
     '<span class="elev-stat">&#8595; <span class="elev-stat-val">' + Math.round(descent) + ' m</span></span>' +
-    '<span class="elev-stat">' + Math.round(minE) + '&ndash;' + Math.round(maxE) + ' m</span>';
+    '<span class="elev-stat">Min <span class="elev-stat-val">' + Math.round(minE) + ' m</span> Max <span class="elev-stat-val">' + Math.round(maxE) + ' m</span></span>';
 
   // ── SVG layout ──
   const W   = elevSvg.clientWidth  || elevSvg.parentElement.clientWidth  || 600;
@@ -4928,6 +4958,7 @@ function drawElevation() {
   // ── CSS variables ──
   const cs      = getComputedStyle(document.documentElement);
   const accent  = cs.getPropertyValue('--accent').trim()   || '#16a34a';
+  const accent2 = cs.getPropertyValue('--accent2').trim()  || '#0891b2';
   const textDim = cs.getPropertyValue('--text-dim').trim() || '#64748b';
   const border  = cs.getPropertyValue('--border').trim()   || '#d1d9e6';
   const surface = cs.getPropertyValue('--surface').trim()  || '#ffffff';
@@ -4974,6 +5005,35 @@ function drawElevation() {
       ' font-family="\'IBM Plex Mono\',monospace" font-size="9" fill="' + textDim + '">' + lbl + '</text>';
   });
 
+  // ── Segment boundary markers ──
+  let segSvg = '';
+  segments.forEach((seg, sIdx) => {
+    if (sIdx === 0) return;
+    const wi = seg.startIndex;
+    const d  = wpDist[wi];
+    if (d === undefined) return;
+    if (d < xViewMin - viewD * 0.02 || d > xViewMax + viewD * 0.02) return;
+    const cx  = px(d);
+    const cxS = cx.toFixed(1);
+    const topY    = PAD.top;
+    const bottomY = PAD.top + gH;
+    const dmY     = topY - 13;  // diamond centred well above the chart top edge
+    const dR      = 4;          // diamond half-size
+    // Vertical dashed line — runs from the label down to the chart bottom (no clip needed, it's a vertical line)
+    segSvg +=
+      '<line x1="' + cxS + '" y1="' + dmY + '" x2="' + cxS + '" y2="' + bottomY + '"' +
+      ' stroke="' + accent2 + '" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"/>';
+    // Arrow + segment name
+    const rawName = seg.name || ('Segment ' + (sIdx + 1));
+    const segLabel = escapeHtml(rawName.length > 16 ? rawName.slice(0, 15) + '\u2026' : rawName);
+    segSvg +=
+      '<text x="' + (cx + 4) + '" y="' + dmY + '" text-anchor="start" dominant-baseline="middle"' +
+      ' fill="' + accent2 + '" opacity="0.85">' +
+      '<tspan font-family="\'Font Awesome 6 Free\'" font-weight="900" font-size="8.5">\uf061</tspan>' +
+      '<tspan font-family="\'IBM Plex Mono\',monospace" font-size="8.5" font-weight="600"> ' + segLabel + '</tspan>' +
+      '</text>';
+  });
+
   // Waypoint markers
   let wpSvg = '';
   for (let wi = 0; wi <= segmentCache.length; wi++) {
@@ -5004,7 +5064,7 @@ function drawElevation() {
     const cy       = py(ele).toFixed(1);
     const baseY    = (PAD.top + gH).toFixed(1);
     const labelY   = (PAD.top + 9).toFixed(1);  // fixed top of graph
-    const color    = isFirst ? '#16a34a' : isLast ? '#dc2626' : waypoints[wi]?.sym === 'Residence' ? '#ca8a04' : '#2563eb';
+    const color    = isFirst ? '#16a34a' : isLast ? '#dc2626' : waypoints[wi]?.sym === 'Residence' ? '#d97706' : '#0891b2';
     const rawLabel = (waypoints[wi] && waypoints[wi].name) ? waypoints[wi].name : String(wi + 1);
     const label    = escapeHtml(rawLabel.length > 14 ? rawLabel.slice(0, 13) + '\u2026' : rawLabel);
     const cxN      = parseFloat(cx);
@@ -5017,10 +5077,10 @@ function drawElevation() {
       // Dot at actual elevation
       '<circle cx="' + cx + '" cy="' + cy + '" r="3.5"' +
       ' fill="' + color + '" stroke="' + surface + '" stroke-width="1.5"/>' +
-      // Label fixed at top of graph
+      // Label fixed at top of graph (white halo for readability)
       '<text x="' + cx + '" y="' + labelY + '" text-anchor="' + anchor + '" dominant-baseline="auto"' +
       ' font-family="\'IBM Plex Mono\',monospace" font-size="8.5" font-weight="600"' +
-      ' fill="' + color + '">' + label + '</text>';
+      ' fill="' + color + '" stroke="' + surface + '" stroke-width="3" paint-order="stroke fill">' + label + '</text>';
   }
 
   // ── Zoom state UI ──
@@ -5037,7 +5097,6 @@ function drawElevation() {
       '</linearGradient>' +
       '<clipPath id="ec"><rect x="' + PAD.left + '" y="' + PAD.top + '" width="' + gW + '" height="' + gH + '"/></clipPath>' +
     '</defs>' +
-    yAxisSvg +
     xAxisSvg +
     '<path d="' + areaD + '" fill="url(#eg)" clip-path="url(#ec)"/>' +
     '<polyline points="' + linePoints + '" fill="none" stroke="' + accent + '" stroke-width="1.5"' +
@@ -5046,7 +5105,9 @@ function drawElevation() {
     ' stroke="' + border + '" stroke-width="1"/>' +
     '<line x1="' + PAD.left + '" y1="' + (PAD.top + gH) + '" x2="' + (PAD.left + gW) + '" y2="' + (PAD.top + gH) + '"' +
     ' stroke="' + border + '" stroke-width="1"/>' +
-    wpSvg;
+    segSvg +
+    wpSvg +
+    yAxisSvg;
 }
 
 /* Patch updateRoute to call onRouteUpdated when done */
