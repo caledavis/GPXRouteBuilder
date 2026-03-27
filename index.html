@@ -270,6 +270,7 @@
     min-height: 0;
     overflow-y: auto;
     overflow-x: hidden;
+    scrollbar-gutter: stable;
     -webkit-overflow-scrolling: touch;
   }
   .sidebar-top::-webkit-scrollbar { width: 4px; }
@@ -309,7 +310,7 @@
 
   .sidebar-section {
     border-bottom: 1px solid var(--border);
-    padding: 12px 14px;
+    padding: 0 14px;
     flex-shrink: 0;
   }
   .sidebar-section h3 {
@@ -318,16 +319,19 @@
     letter-spacing: 0.1em;
     color: var(--text-dim);
     text-transform: uppercase;
-    margin-bottom: 10px;
+    margin: 0;
+    padding: 10px 0;
+    min-height: 37px;
+    box-sizing: border-box;
     display: flex;
     align-items: center;
     justify-content: space-between;
   }
-  .sidebar-section.section-collapsed h3 { margin-bottom: 0; }
+  .section-body { padding: 10px 0; }
   .sidebar-section.section-collapsed .section-body { display: none; }
 
   .section-collapse-btn {
-    width: 20px; height: 20px;
+    width: 20px; height: 17px;
     background: transparent;
     border: 1px solid var(--border);
     border-radius: 5px;
@@ -341,10 +345,10 @@
   }
   .section-collapse-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
   .section-collapse-btn i { transition: transform 0.2s; }
-  .sidebar-section.section-collapsed .section-collapse-btn i { transform: rotate(-90deg); }
+  .sidebar-section.section-collapsed .section-collapse-btn i { transform: rotate(90deg); }
 
   /* ── cycling overlay rows ── */
-  .overlay-rows { display: flex; flex-direction: column; gap: 5px; }
+  .overlay-rows { display: flex; flex-direction: column; gap: 5px; margin-top: 5px; }
 
   .overlay-row {
     display: flex;
@@ -383,6 +387,13 @@
     transition: box-shadow 0.2s;
   }
   .overlay-row.active .overlay-pip { box-shadow: 0 0 0 3px color-mix(in srgb, var(--ov-color) 25%, transparent); }
+  .knoop-pip {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--surface);
+    border: 2px solid #007d00;
+  }
 
   .overlay-label {
     flex: 1;
@@ -442,8 +453,8 @@
     display: flex;
     align-items: center;
     gap: 9px;
-    margin-top: 7px;
-    padding: 6px 10px;
+    margin-top: 5px;
+    padding: 7px 10px;
     border-radius: 7px;
     border: 1px solid var(--border);
     background: var(--surface2);
@@ -496,7 +507,9 @@
   /* ── waypoints ── */
   .waypoints-section { flex: 1; overflow: hidden; display: flex; flex-direction: column; min-height: 430px; }
   .waypoints-header {
-    padding: 12px 14px 8px;
+    padding: 10px 14px;
+    min-height: 37px;
+    box-sizing: border-box;
     display: flex; align-items: center; justify-content: space-between;
     border-bottom: 1px solid var(--border);
     flex-shrink: 0;
@@ -567,9 +580,9 @@
 
   .add-seg-btn {
     display: block; width: calc(100% - 12px); margin: 4px 6px;
-    padding: 6px 8px; background: transparent;
+    padding: 7px 8px; background: transparent;
     border: 1px dashed rgba(8,145,178,0.35); border-radius: 6px;
-    color: var(--accent2); font-family: var(--mono); font-size: 10px;
+    color: var(--accent2); font-family: var(--mono); font-size: 11px;
     letter-spacing: 0.05em; cursor: pointer; text-align: left;
     transition: all 0.2s;
   }
@@ -662,7 +675,7 @@
   .empty-state .icon { font-size: 26px; margin-bottom: 8px; }
 
   .add-btn {
-    margin: 8px 14px; padding: 8px;
+    margin: 8px 14px; padding: 7px 8px;
     margin-bottom: calc(8px + env(safe-area-inset-bottom, 0px));
     background: var(--accent-dim); border: 1px dashed rgba(22,163,74,0.4); border-radius: 8px;
     color: var(--accent); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
@@ -676,7 +689,7 @@
 
   .address-search-row {
     display: flex; gap: 6px; align-items: center;
-    padding: 8px 14px 4px;
+    padding: 8px 14px calc(12px + env(safe-area-inset-bottom, 0px));
     flex-shrink: 0;
   }
   .address-input {
@@ -696,7 +709,7 @@
   }
   .address-search-btn:hover { opacity: 0.85; }
   .address-results {
-    margin: 0 14px 4px;
+    margin: 0 14px calc(12px + env(safe-area-inset-bottom, 0px));
     border-radius: 6px;
     overflow: hidden;
     border: 1px solid var(--border);
@@ -723,7 +736,7 @@
   }
   #route-name:focus { border-color: var(--accent2); }
 
-  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+  .stats-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; margin-bottom: 8px; }
   .stat-box { background: var(--surface2); border: 1px solid var(--border); border-radius: 6px; padding: 8px 10px; transition: background 0.25s, border-color 0.25s; }
   .stat-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; color: var(--text-dim); text-transform: uppercase; }
   .stat-value { font-family: var(--mono); font-size: 13px; font-weight: 600; color: var(--accent); margin-top: 3px; }
@@ -769,11 +782,20 @@
     white-space: nowrap; transition: background 0.25s;
   }
 
-  .show-all-badge {
-    display: none;
+  .badge-stack {
     position: absolute;
     top: 12px;
     left: 50%; transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    z-index: 1000;
+    pointer-events: none;
+  }
+  .show-all-badge {
+    display: none;
+    pointer-events: auto;
     background: var(--surface);
     border: 1px solid var(--accent);
     color: var(--accent);
@@ -783,7 +805,6 @@
     font-size: 11px;
     letter-spacing: 0.04em;
     cursor: pointer;
-    z-index: 1000;
     backdrop-filter: blur(6px);
     white-space: nowrap;
     box-shadow: 0 2px 8px rgba(0,0,0,0.12);
@@ -951,10 +972,12 @@
     font-family: var(--mono);
     font-size: 9.5px;
     color: var(--text-dim);
-    margin-top: 7px;
     display: flex;
     align-items: center;
     gap: 5px;
+    text-transform: none;
+    letter-spacing: normal;
+    font-weight: normal;
   }
   .autosave-dot {
     width: 6px; height: 6px;
@@ -965,6 +988,7 @@
     transition: opacity 0.3s;
   }
   .autosave-dot.pulse { opacity: 1; }
+  .h3-right { display: flex; align-items: center; gap: 8px; }
 
   /* GPX file overlay */
   .gpx-upload-label {
@@ -986,39 +1010,35 @@
     user-select: none;
   }
   .gpx-upload-label:hover { background: var(--surface2); border-color: var(--text-dim); }
+  .gpx-upload-label.drag-over { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
 
   .gpx-file-row {
     display: flex;
     align-items: center;
     gap: 9px;
-    margin-top: 8px;
+    margin-top: 5px;
     padding: 7px 10px;
     border-radius: 7px;
     border: 1px solid var(--border);
     background: var(--surface2);
     transition: border-color 0.2s;
-  }
-
-  .gpx-toggle {
-    width: 26px; height: 15px;
-    border-radius: 8px;
-    background: var(--border);
     position: relative;
-    transition: background 0.2s;
-    flex-shrink: 0;
-    cursor: pointer;
+    overflow: hidden;
+    --ov-color: #f97316;
   }
-  .gpx-toggle::after {
+  .gpx-file-row::before {
     content: '';
     position: absolute;
-    width: 11px; height: 11px;
-    background: white;
-    border-radius: 50%;
-    top: 2px; left: 2px;
-    transition: left 0.2s;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    border-radius: 7px 0 0 7px;
+    background: var(--ov-color);
+    opacity: 0.3;
+    transition: opacity 0.2s;
   }
-  .gpx-file-row.active .gpx-toggle { background: var(--accent2); }
-  .gpx-file-row.active .gpx-toggle::after { left: 13px; }
+  .gpx-file-row.active::before { opacity: 1; }
+  .gpx-file-row.active .overlay-switch { background: var(--ov-color); }
+  .gpx-file-row.active .overlay-switch::after { left: 13px; }
 
   .gpx-file-name {
     flex: 1;
@@ -1035,7 +1055,7 @@
   .gpx-file-row.active .gpx-file-name { color: var(--text); font-weight: 500; }
 
   .gpx-remove {
-    width: 20px; height: 20px;
+    width: 15px; height: 15px;
     background: transparent;
     border: 1px solid transparent;
     border-radius: 4px;
@@ -1154,6 +1174,59 @@
     .routed-by-badge { display: none !important; }
   }
 
+
+  /* Sidebar backdrop — hidden by default, shown on small screens when sidebar is open */
+  #sidebar-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.35);
+    z-index: 1099;
+    cursor: pointer;
+  }
+  #sidebar-backdrop.visible { display: block; }
+
+  /* Floating open button — hidden by default, shown on small screens */
+  #sidebar-open-btn { display: none; }
+
+  /* Below 780px: sidebar becomes a fixed overlay (drawer pattern) */
+  @media (max-width: 780px) {
+    .sidebar-rail { display: none; }
+    .sidebar {
+      position: fixed !important;
+      top: 0; left: 0; bottom: 0;
+      width: 310px !important;
+      border-right: 1px solid var(--border) !important;
+      transform: translateX(0);
+      transition: transform 0.3s ease;
+      z-index: 1100;
+    }
+    .sidebar.collapsed {
+      transform: translateX(-100%);
+      width: 310px !important;
+      border-right-width: 1px !important;
+    }
+    .sidebar.collapsed .sidebar-section  { display: block; }
+    .sidebar.collapsed .waypoints-section { display: flex; }
+
+    #sidebar-open-btn {
+      display: flex;
+      position: absolute;
+      top: 10px; left: 10px;
+      z-index: 900;
+      width: 30px; height: 30px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 13px;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.15);
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    #sidebar-open-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
+  }
 
   /* Above 780 px: sidebar is always visible — hide the collapse rail */
   @media (min-width: 781px) {
@@ -1474,7 +1547,8 @@
   }
   .elev-stats {
     display: flex;
-    gap: 14px;
+    flex-wrap: wrap;
+    gap: 4px 10px;
     font-size: 10px;
   }
   .elev-stat { color: var(--text-dim); }
@@ -1561,6 +1635,7 @@
 
 <div class="main">
 
+  <div id="sidebar-backdrop"></div>
   <div class="sidebar" id="sidebar">
 
     <!-- Top sections scroll as a group when the viewport is short,
@@ -1570,104 +1645,90 @@
     <div class="sidebar-section" id="section-file">
       <h3>
         File
-        <button class="section-collapse-btn" data-section="section-file" title="Collapse section"><i class="fa-solid fa-chevron-down"></i></button>
+        <span class="autosave-notice">
+          <span class="autosave-dot" id="autosave-dot"></span>
+          <span id="autosave-label">Auto-saved to this browser</span>
+        </span>
       </h3>
       <div class="section-body">
         <div class="save-row">
+          <button class="save-btn" id="new-route-btn" title="Start a new route"><i class="fa-solid fa-file"></i> New</button>
           <button class="save-btn" id="download-save-btn" title="Save to work on later"><i class="fa-solid fa-floppy-disk"></i> Save</button>
           <label class="save-btn" for="import-route-input" style="cursor:pointer;" title="Work on a saved route"><i class="fa-solid fa-folder-open"></i> Open</label>
           <input type="file" id="import-route-input" accept=".gpx" style="display:none">
         </div>
+        <input type="text" id="route-name" value="My Route" placeholder="Route name…">
+        <div class="stats-row">
+          <div class="stat-box"><div class="stat-label">Elev Change</div><div class="stat-value" id="stat-points">—</div></div>
+          <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
+        </div>
         <div class="save-row">
-          <button class="save-btn" id="export-route-btn" title="Download GPX route files for your GPS"><i class="fa-solid fa-file-export"></i> Export Route</button>
-          <button class="save-btn" id="export-course-btn" title="Download a Garmin course .fit file"><i class="fa-solid fa-route"></i> Export Course</button>
+          <button class="save-btn" id="export-route-btn" title="Download .gpx route file(s)"><i class="fa-solid fa-file-export"></i> GPX Route</button>
+          <button class="save-btn" id="export-course-btn" title="Download .fit course file"><i class="fa-solid fa-file-export"></i> FIT Course</button>
         </div>
         <div class="save-row">
           <button class="save-btn" id="share-route-btn" title="Share your route with a link"><i class="fa-solid fa-link"></i> Copy Link</button>
         </div>
-        <div class="autosave-notice">
-          <div class="autosave-dot" id="autosave-dot"></div>
-          <span id="autosave-label">Auto-saved to this browser</span>
-        </div>
       </div>
     </div>
 
-    <div class="sidebar-section" id="section-gpx-overlay">
+    <div class="sidebar-section" id="section-overlays">
       <h3>
-        GPX Overlay
-        <button class="section-collapse-btn" data-section="section-gpx-overlay" title="Collapse section"><i class="fa-solid fa-chevron-down"></i></button>
+        Overlays
+        <button class="section-collapse-btn" data-section="section-overlays" title="Collapse section"><i class="fa-solid fa-chevron-down"></i></button>
       </h3>
       <div class="section-body">
         <input type="file" id="gpx-file-input" accept=".gpx" style="display:none">
-        <label for="gpx-file-input" class="gpx-upload-label">
-          <span><i class="fa-solid fa-folder-open"></i></span> Upload GPX file
+        <label for="gpx-file-input" class="gpx-upload-label" id="gpx-upload-label">
+          <span><i class="fa-solid fa-file-arrow-up"></i></span> Upload GPX overlay
         </label>
         <div id="gpx-file-row" class="gpx-file-row active" style="display:none">
-          <div class="gpx-toggle" id="gpx-toggle" title="Toggle visibility"></div>
+          <div class="overlay-pip"></div>
           <span class="gpx-file-name" id="gpx-file-name"></span>
           <button class="gpx-remove" id="gpx-remove" title="Remove overlay"><i class="fa-solid fa-xmark"></i></button>
+          <div class="overlay-switch" id="gpx-toggle" title="Toggle visibility"></div>
         </div>
-      </div>
-    </div>
 
-    <div class="sidebar-section" id="section-cycling-overlays">
-      <h3>
-        Cycling Route Overlays
-        <button class="section-collapse-btn" data-section="section-cycling-overlays" title="Collapse section"><i class="fa-solid fa-chevron-down"></i></button>
-      </h3>
-      <div class="section-body">
-        <div class="overlay-note">Right-click a route on the map to isolate it.</div>
         <div class="overlay-rows" id="overlay-rows">
           <div class="overlay-row" id="ov-icn" style="--ov-color:#e8000d" title="International cycling networks e.g. EuroVelo">
             <div class="overlay-pip"></div>
-            <span class="overlay-label">International (ICN)</span>
+            <span class="overlay-label">International routes</span>
             <div class="overlay-spinner"></div>
             <div class="overlay-switch"></div>
           </div>
           <div class="overlay-row" id="ov-ncn" style="--ov-color:#0000ff" title="National cycling networks">
             <div class="overlay-pip"></div>
-            <span class="overlay-label">National (NCN)</span>
+            <span class="overlay-label">National routes</span>
             <div class="overlay-spinner"></div>
             <div class="overlay-switch"></div>
           </div>
           <div class="overlay-row" id="ov-rcn" style="--ov-color:#007d00" title="Regional cycling networks">
             <div class="overlay-pip"></div>
-            <span class="overlay-label">Regional (RCN)</span>
+            <span class="overlay-label">Regional routes</span>
             <div class="overlay-spinner"></div>
             <div class="overlay-switch"></div>
           </div>
           <div class="overlay-row" id="ov-lcn" style="--ov-color:#bb00bb" title="Local cycling networks">
             <div class="overlay-pip"></div>
-            <span class="overlay-label">Local (LCN)</span>
+            <span class="overlay-label">Local routes</span>
             <div class="overlay-spinner"></div>
             <div class="overlay-switch"></div>
           </div>
         </div>
-        <div class="names-toggle-row" id="names-toggle">
+        <!-- names-toggle hidden — showRouteNames is always true; restore this div to re-enable -->
+        <div class="names-toggle-row" id="names-toggle" style="display:none">
           <span class="names-toggle-label">Show route names</span>
           <div class="names-toggle-switch"></div>
         </div>
         <div class="names-toggle-row" id="knoop-toggle">
-          <span class="names-toggle-label">Show knooppunten</span>
+          <div class="knoop-pip"></div>
+          <span class="names-toggle-label">Knooppunten</span>
           <div class="knoop-spinner"></div>
           <div class="names-toggle-switch"></div>
         </div>
       </div>
     </div>
 
-    <div class="sidebar-section" id="section-route-name">
-      <h3>
-        Route Name
-        <button class="section-collapse-btn" data-section="section-route-name" title="Collapse section"><i class="fa-solid fa-chevron-down"></i></button>
-      </h3>
-      <div class="section-body">
-        <input type="text" id="route-name" value="My Route" placeholder="Route name…">
-        <div class="stats-row">
-          <div class="stat-box"><div class="stat-label">Elev Change</div><div class="stat-value" id="stat-points">—</div></div>
-          <div class="stat-box"><div class="stat-label">Distance</div><div class="stat-value" id="stat-dist">0 km</div></div>
-        </div>
-      </div>
-    </div>
 
     </div><!-- /sidebar-top -->
 
@@ -1677,7 +1738,7 @@
         <span class="waypoint-count" id="wp-count">0</span>
       </div>
       <div class="waypoints-list" id="waypoints-list">
-        <div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add<br>via points to your route</div>
+        <div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add points</div>
       </div>
       <button class="add-seg-btn" id="add-seg-btn" disabled>+ Add new segment…</button>
       <div class="address-search-row">
@@ -1685,7 +1746,6 @@
         <button class="address-search-btn" id="address-search-btn" title="Add waypoint at address"><i class="fa-solid fa-plus"></i></button>
       </div>
       <div class="address-results" id="address-results"></div>
-      <button class="add-btn" id="clear-btn"><i class="fa-solid fa-xmark"></i> Clear All Points</button>
     </div>
 
   </div><!-- /sidebar -->
@@ -1696,9 +1756,12 @@
   </div>
 
   <div class="map-container">
+    <button id="sidebar-open-btn" title="Show sidebar"><i class="fa-solid fa-bars"></i></button>
     <div id="map"></div>
-    <div class="map-hint">Click to add points · Drag them to move</div>
-    <button class="show-all-badge" id="show-all-badge"><i class="fa-solid fa-rotate-left"></i> Show all routes</button>
+    <div class="badge-stack">
+      <button class="show-all-badge" id="show-all-badge"><i class="fa-solid fa-rotate-left"></i> Show all routes</button>
+      <button class="show-all-badge" id="show-gpx-badge"><i class="fa-solid fa-rotate-left"></i> Show all tracks</button>
+    </div>
   </div>
 
   <div class="preview-panel collapsed" id="preview-panel">
@@ -1763,12 +1826,44 @@
   </button>
 </div>
 
+<div class="ctx-menu" id="gpx-ctx-menu">
+  <div class="ctx-menu-label" id="gpx-ctx-label"></div>
+  <button class="ctx-menu-item" id="gpx-ctx-only">
+    <span class="ctx-menu-icon"><i class="fa-regular fa-circle-dot"></i></span> <span id="gpx-ctx-only-label">Show only this track</span>
+  </button>
+  <button class="ctx-menu-item" id="gpx-ctx-all">
+    <span class="ctx-menu-icon"><i class="fa-solid fa-rotate-left"></i></span> Show all tracks
+  </button>
+</div>
+
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/maplibre-gl/dist/maplibre-gl.js"></script>
 <script src="https://unpkg.com/@maplibre/maplibre-gl-leaflet/leaflet-maplibre-gl.js"></script>
 <script>
 const MAX_PER_FILE = 40;
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter';
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+];
+
+async function overpassFetch(body) {
+  let lastErr;
+  for (const url of OVERPASS_URLS) {
+    try {
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body,
+      });
+      if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      return await resp.json();
+    } catch (err) {
+      lastErr = err;
+      console.warn('Overpass endpoint failed, trying next:', url, err.message);
+    }
+  }
+  throw lastErr;
+}
 
 const NET_CFG = {
   icn: { color: '#e8000d', weight: 5,   opacity: 0.9,  dash: null,  showNames: true,  showLabels: true  },
@@ -2088,9 +2183,7 @@ function restoreFromLocalStorage() {
         document.getElementById('snap-toggle').classList.add('active');
       }
       deserialiseRoute(data);
-      document.getElementById('autosave-label').textContent =
-        'Restored from auto-save · ' + new Date(data.savedAt).toLocaleDateString(
-          undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+      document.getElementById('autosave-label').textContent = 'Restored from auto-save';
     }
   } catch(_) {}
 }
@@ -2197,15 +2290,51 @@ document.getElementById('fit-preview-toggle-btn').addEventListener('click', () =
 });
 
 /* ── Sidebar toggle ── */
-function toggleSidebar() {
-  const sidebar   = document.getElementById('sidebar');
-  const collapsed = sidebar.classList.toggle('collapsed');
-  const btn = document.getElementById('sidebar-rail-btn');
-  btn.querySelector('i').className = collapsed ? 'fa-solid fa-chevron-right' : 'fa-solid fa-chevron-left';
-  btn.title = collapsed ? 'Show sidebar' : 'Hide sidebar';
-  setTimeout(() => map.invalidateSize(), 260);
+function isSmallScreen() { return window.innerWidth <= 780; }
+
+function openSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.remove('collapsed');
+  if (isSmallScreen()) {
+    document.getElementById('sidebar-backdrop').classList.add('visible');
+  } else {
+    setTimeout(() => map.invalidateSize(), 260);
+  }
 }
-document.getElementById('sidebar-rail-btn').addEventListener('click', toggleSidebar);
+
+function closeSidebar() {
+  const sidebar = document.getElementById('sidebar');
+  sidebar.classList.add('collapsed');
+  if (isSmallScreen()) {
+    document.getElementById('sidebar-backdrop').classList.remove('visible');
+  } else {
+    setTimeout(() => map.invalidateSize(), 260);
+  }
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.contains('collapsed') ? openSidebar() : closeSidebar();
+}
+
+document.getElementById('sidebar-open-btn').addEventListener('click', openSidebar);
+document.getElementById('sidebar-backdrop').addEventListener('click', closeSidebar);
+
+/* ── Swipe to open/close sidebar (small screens) ── */
+(function() {
+  let t0x = 0, t0y = 0;
+  document.addEventListener('touchstart', e => {
+    t0x = e.touches[0].clientX;
+    t0y = e.touches[0].clientY;
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (!isSmallScreen()) return;
+    const dx = e.changedTouches[0].clientX - t0x;
+    const dy = Math.abs(e.changedTouches[0].clientY - t0y);
+    if (dy > Math.abs(dx) || dy > 80) return; // mostly vertical — ignore
+    if (dx < -50) closeSidebar();              // swipe left → close
+    if (dx > 50 && t0x < 30) openSidebar();   // swipe right from left edge → open
+  }, { passive: true });
+})();
 
 /* ── Greyscale map toggle ── */
 let isGreyscale = false;
@@ -2230,7 +2359,7 @@ document.querySelectorAll('.overlay-row').forEach(row => {
 });
 
 /* ── Route names toggle ── */
-let showRouteNames = false;
+let showRouteNames = true; // always on — toggle hidden, restore #names-toggle display to re-enable
 
 document.getElementById('names-toggle').addEventListener('click', () => {
   showRouteNames = !showRouteNames;
@@ -2289,12 +2418,7 @@ async function refreshKnooppunten() {
   node["lcn_ref"](${bbox});
 );
 out body qt;`;
-    const resp = await fetch(OVERPASS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'data=' + encodeURIComponent(query),
-    });
-    const data = await resp.json();
+    const data = await overpassFetch('data=' + encodeURIComponent(query));
     if (!knoopEnabled) return;
 
     const group = L.layerGroup();
@@ -2440,14 +2564,7 @@ async function refreshOverlay(net) {
 way(r.routes);
 out geom qt;`;
 
-    const resp = await fetch(OVERPASS_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'data=' + encodeURIComponent(query),
-    });
-
-    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
+    const data = await overpassFetch('data=' + encodeURIComponent(query));
 
     // Bail out if the overlay was disabled while we were waiting for the response
     if (!state.enabled) return;
@@ -3477,7 +3594,7 @@ function renderSidebar() {
   document.getElementById('wp-count').textContent    = count;
   updateElevStat();
   if (!count) {
-    list.innerHTML = `<div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add<br>via points to your route</div>`;
+    list.innerHTML = `<div class="empty-state"><div class="icon"><i class="fa-solid fa-map-pin"></i></div>Click on the map to add points</div>`;
     document.getElementById('split-badge').classList.remove('visible');
     document.getElementById('add-seg-btn').disabled = true;
     return;
@@ -4118,17 +4235,19 @@ function updateFitPreview() {
 
 /* ── Download ── */
 /* ── Clear ── */
-document.getElementById('clear-btn').addEventListener('click', () => {
-  if (!waypoints.length || !confirm('Remove all waypoints?')) return;
+document.getElementById('new-route-btn').addEventListener('click', () => {
+  if (waypoints.length && !confirm('Start a new route? Your current route will be cleared.')) return;
   waypoints.forEach(wp => map.removeLayer(wp.marker));
   waypoints = [];
   segments  = [{ name: 'Segment 1', startIndex: 0 }];
   if (routeLayer) { map.removeLayer(routeLayer); routeLayer = null; }
   selectedIndex = -1;
   newestIndex   = -1;
+  document.getElementById('route-name').value = 'My Route';
   invalidateAllSegments();
   updateAll();
 });
+
 
 document.getElementById('route-name').addEventListener('input', updateGpxPreview);
 
@@ -4149,6 +4268,8 @@ function sanitize(s)   { return s.replace(/[^a-zA-Z0-9_\- ]/g,'').replace(/\s+/g
 /* ── GPX file overlay ── */
 let gpxOverlayLayer   = null;
 let gpxOverlayVisible = true;
+let gpxOverlayTracks  = [];          // { poly, name } for each polyline/route in the overlay
+let gpxHiddenSet      = new Set();   // poly objects currently hidden by the ctx menu
 
 document.getElementById('gpx-file-input').addEventListener('change', function(e) {
   const file = e.target.files[0];
@@ -4159,8 +4280,25 @@ document.getElementById('gpx-file-input').addEventListener('change', function(e)
   this.value = '';  // allow re-selecting the same file
 });
 
+(function() {
+  const label = document.getElementById('gpx-upload-label');
+  label.addEventListener('dragover', e => { e.preventDefault(); label.classList.add('drag-over'); });
+  label.addEventListener('dragleave', e => { if (!label.contains(e.relatedTarget)) label.classList.remove('drag-over'); });
+  label.addEventListener('drop', e => {
+    e.preventDefault();
+    label.classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = ev => loadGpxOverlay(ev.target.result, file.name);
+    reader.readAsText(file);
+  });
+})();
+
 function loadGpxOverlay(text, filename) {
   if (gpxOverlayLayer) { map.removeLayer(gpxOverlayLayer); gpxOverlayLayer = null; }
+  gpxOverlayTracks = [];
+  gpxHiddenSet.clear();
 
   let doc;
   try { doc = new DOMParser().parseFromString(text, 'application/xml'); }
@@ -4183,6 +4321,8 @@ function loadGpxOverlay(text, filename) {
         const poly = L.polyline(coords, { color: COLOR, weight: 3, opacity: 0.85, lineJoin: 'round' });
         if (name) poly.bindTooltip(name, { sticky: true, className: 'route-label' });
         poly.addTo(group);
+        gpxOverlayTracks.push({ poly, name });
+        poly.on('contextmenu', e => { L.DomEvent.stopPropagation(e); openGpxCtxMenu(e.originalEvent.clientX, e.originalEvent.clientY, poly); });
       }
     });
   });
@@ -4200,6 +4340,8 @@ function loadGpxOverlay(text, filename) {
       const poly = L.polyline(coords, { color: COLOR, weight: 3, opacity: 0.85, dashArray: '6 4', lineJoin: 'round' });
       if (name) poly.bindTooltip(name, { sticky: true, className: 'route-label' });
       poly.addTo(group);
+      gpxOverlayTracks.push({ poly, name });
+      poly.on('contextmenu', e => { L.DomEvent.stopPropagation(e); openGpxCtxMenu(e.originalEvent.clientX, e.originalEvent.clientY, poly); });
     }
   });
 
@@ -4251,7 +4393,11 @@ document.getElementById('gpx-toggle').addEventListener('click', () => {
 
 document.getElementById('gpx-remove').addEventListener('click', () => {
   if (gpxOverlayLayer) { map.removeLayer(gpxOverlayLayer); gpxOverlayLayer = null; }
+  gpxOverlayTracks = [];
+  gpxHiddenSet.clear();
+  gpxSoloPoly = null;
   gpxOverlayVisible = true;
+  updateShowGpxBadge();
   const row = document.getElementById('gpx-file-row');
   row.style.display = 'none';
   row.classList.add('active');
@@ -4504,12 +4650,13 @@ function buildFitCourse() {
   u8(0); u16(255); u16(0); u32(0); u32(ts0); u8(6); // manufacturer=dev, product=0, serial=0, time, type=course
 
   // 2. course (local 1, global 31)
-  // Profile field numbers: 4=sport(enum), 5=name(string), 6=capabilities(uint32z)
+  // Profile field numbers: 4=sport(enum), 5=name(string), 6=capabilities(uint32z), 7=sub_sport(enum)
   // capabilities=515 (0x203): processed(0x1) | valid(0x2) | navigation(0x200) — required for device navigation
+  // sport=2 (cycling), sub_sport=2 (street/road cycling)
   const nameBytes = new TextEncoder().encode(name);
   const nameFieldLen = nameBytes.length + 1; // include null terminator
-  fitDef(1, 31, [{num:6,size:4,base:U32Z},{num:5,size:nameFieldLen,base:STR},{num:4,size:1,base:ENUM}]);
-  u8(1); u32(515); fitStr(name, nameFieldLen); u8(0); // capabilities, name, sport=generic
+  fitDef(1, 31, [{num:6,size:4,base:U32Z},{num:5,size:nameFieldLen,base:STR},{num:4,size:1,base:ENUM},{num:7,size:1,base:ENUM}]);
+  u8(1); u32(515); fitStr(name, nameFieldLen); u8(2); u8(2); // capabilities, name, sport=cycling, sub_sport=street
 
   // 3. lap (local 2, global 19) — start_time=ts0, timestamp=tsEnd per spec
   fitDef(2, 19, [{num:253,size:4,base:U32},{num:2,size:4,base:U32},
@@ -4530,6 +4677,8 @@ function buildFitCourse() {
   u8(3); u32(ts0); u32(0); u8(0); u8(0); u8(0); // time, data=0(timer_trigger=manual), event=timer, type=start, group=0
 
   // 5+6. course_point (local 4, global 32) then record (local 5, global 20) — interleaved per Garmin pattern
+  // course_points only for: start, end, and any waypoint with a non-empty name.
+  // All waypoints get a record. This avoids hitting per-device course_point limits on long routes.
   // course_point distances stored as raw metres (not ×100) to match Garmin device behaviour
   // Profile field numbers: 254=message_index(uint16), 1=timestamp, 2=lat, 3=lon, 4=distance, 5=type, 6=name
   fitDef(4, 32, [{num:254,size:2,base:U16},{num:1,size:4,base:U32},{num:6,size:16,base:STR},
@@ -4537,12 +4686,15 @@ function buildFitCourse() {
                  {num:4,size:4,base:U32}]);
   // record: position only (no timestamp/distance), matching Garmin's minimal record format
   fitDef(5, 20, [{num:0,size:4,base:S32},{num:1,size:4,base:S32}]);
+  let cpIdx = 0;
   for (let i = 0; i < wps.length; i++) {
-    // course_point before its corresponding record
-    u8(4); u16(i); u32(ts0 + i); fitStr(wps[i].name || '', 16);
-    u8(0); u32(semi(wps[i].lat)); u32(semi(wps[i].lng));
-    u32(Math.round(cumDist[i])); // raw metres, matching Garmin's unscaled storage
-    // record
+    const isFirst = i === 0, isLast = i === wps.length - 1;
+    const hasName = (wps[i].name || '').trim() !== '';
+    if (isFirst || isLast || hasName) {
+      u8(4); u16(cpIdx++); u32(ts0 + i); fitStr(wps[i].name || '', 16);
+      u8(0); u32(semi(wps[i].lat)); u32(semi(wps[i].lng));
+      u32(Math.round(cumDist[i]));
+    }
     u8(5); u32(semi(wps[i].lat)); u32(semi(wps[i].lng));
   }
 
@@ -4763,9 +4915,8 @@ document.getElementById('share-route-btn').addEventListener('click', shareRoute)
 
 updateGpxPreview();
 // Collapse sidebar by default on small screens (iPhone etc.)
-if (window.innerWidth <= 500) {
-  document.getElementById('sidebar').classList.add('collapsed');
-  setTimeout(() => map.invalidateSize(), 260);
+if (window.innerWidth <= 780) {
+  closeSidebar();
 }
 // Safety-net: if the GL style fetch hasn't finished after 4 s (offline, slow
 // network) restore autosave anyway so the user isn't left with a blank state.
@@ -4946,7 +5097,7 @@ document.getElementById('attr-btn').addEventListener('click', () => attrModal.cl
 document.getElementById('add-seg-btn').addEventListener('click', () => { if (!document.getElementById('add-seg-btn').disabled) splitSegmentAt(waypoints.length - 1); });
 document.getElementById('attr-modal-close').addEventListener('click', () => attrModal.classList.remove('open'));
 attrModal.addEventListener('click', e => { if (e.target === attrModal) attrModal.classList.remove('open'); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { attrModal.classList.remove('open'); closeCtxMenu(); closeRouteCtxMenu(); } });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { attrModal.classList.remove('open'); closeCtxMenu(); closeRouteCtxMenu(); closeGpxCtxMenu(); } });
 
 /* ── Route filter popup ── */
 const routeCtxMenu = document.getElementById('route-ctx-menu');
@@ -5025,6 +5176,14 @@ function updateShowAllBadge() {
   document.getElementById('show-all-badge').classList.toggle('visible', anyFiltered);
 }
 
+function updateShowGpxBadge() {
+  document.getElementById('show-gpx-badge').classList.toggle('visible', gpxHiddenSet.size > 0);
+}
+
+document.getElementById('show-gpx-badge').addEventListener('click', () => {
+  showAllGpxTracks();
+});
+
 document.getElementById('show-all-badge').addEventListener('click', () => {
   Object.keys(NET_CFG).forEach(k => {
     applyRouteFilter(k, null);
@@ -5055,6 +5214,59 @@ document.getElementById('route-ctx-all').addEventListener('click', () => {
 
 document.addEventListener('click', e => {
   if (!routeCtxMenu.contains(e.target)) closeRouteCtxMenu();
+  if (!gpxCtxMenu.contains(e.target)) closeGpxCtxMenu();
+});
+
+const gpxCtxMenu = document.getElementById('gpx-ctx-menu');
+let gpxCtxPoly  = null;
+let gpxSoloPoly = null;   // the currently soloed track, if any
+
+function openGpxCtxMenu(x, y, poly) {
+  gpxCtxPoly = poly;
+  const entry = gpxOverlayTracks.find(t => t.poly === poly);
+  document.getElementById('gpx-ctx-label').textContent = entry?.name || 'Unnamed track';
+  const isSolo = gpxSoloPoly === poly;
+  document.getElementById('gpx-ctx-only-label').textContent = isSolo ? 'Showing only this track' : 'Show only this track';
+  document.getElementById('gpx-ctx-only').style.fontWeight = isSolo ? '600' : '';
+  gpxCtxMenu.style.left = '0px'; gpxCtxMenu.style.top = '0px';
+  gpxCtxMenu.classList.add('open');
+  const mw = gpxCtxMenu.offsetWidth, mh = gpxCtxMenu.offsetHeight;
+  gpxCtxMenu.style.left = Math.min(x, window.innerWidth  - mw - 8) + 'px';
+  gpxCtxMenu.style.top  = Math.min(y, window.innerHeight - mh - 8) + 'px';
+}
+
+function closeGpxCtxMenu() {
+  gpxCtxMenu.classList.remove('open');
+  gpxCtxPoly = null;
+}
+
+function showAllGpxTracks() {
+  if (!gpxOverlayLayer) return;
+  gpxHiddenSet.forEach(poly => poly.addTo(gpxOverlayLayer));
+  gpxHiddenSet.clear();
+  gpxSoloPoly = null;
+  updateShowGpxBadge();
+}
+
+document.getElementById('gpx-ctx-only').addEventListener('click', () => {
+  if (!gpxCtxPoly) return;
+  const target = gpxCtxPoly;
+  if (gpxSoloPoly === target) {
+    showAllGpxTracks();
+  } else {
+    showAllGpxTracks();   // restore any previously hidden tracks first
+    gpxOverlayTracks.forEach(({ poly }) => {
+      if (poly !== target) { gpxOverlayLayer.removeLayer(poly); gpxHiddenSet.add(poly); }
+    });
+    gpxSoloPoly = target;
+    updateShowGpxBadge();
+  }
+  closeGpxCtxMenu();
+});
+
+document.getElementById('gpx-ctx-all').addEventListener('click', () => {
+  showAllGpxTracks();
+  closeGpxCtxMenu();
 });
 
 /* ══════════════════════════════════════════════════════════════
