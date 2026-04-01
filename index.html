@@ -1189,6 +1189,9 @@
   /* Floating open button — hidden by default, shown on small screens */
   #sidebar-open-btn { display: none; }
 
+  /* Sidebar close button — hidden by default, shown on small screens */
+  #sidebar-close-btn { display: none; }
+
   /* Below 780px: sidebar becomes a fixed overlay (drawer pattern) */
   @media (max-width: 780px) {
     .sidebar-rail { display: none; }
@@ -1209,11 +1212,32 @@
     .sidebar.collapsed .sidebar-section  { display: block; }
     .sidebar.collapsed .waypoints-section { display: flex; }
 
+    .leaflet-top.leaflet-left { margin-top: 40px; }
+    .autosave-notice { display: none; }
+
+    #sidebar-close-btn {
+      display: flex;
+      position: absolute;
+      top: 8px; right: 8px;
+      z-index: 10;
+      width: 28px; height: 28px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--text-dim);
+      font-size: 12px;
+      flex-shrink: 0;
+      transition: border-color 0.15s, color 0.15s, background 0.15s;
+    }
+    #sidebar-close-btn:hover { border-color: var(--accent2); color: var(--accent2); background: rgba(8,145,178,0.08); }
+
     #sidebar-open-btn {
       display: flex;
       position: absolute;
       top: 10px; left: 10px;
-      z-index: 900;
+      z-index: 1001;
       width: 30px; height: 30px;
       background: var(--surface);
       border: 1px solid var(--border);
@@ -1637,6 +1661,8 @@
 
   <div id="sidebar-backdrop"></div>
   <div class="sidebar" id="sidebar">
+
+    <button id="sidebar-close-btn" title="Hide sidebar"><i class="fa-solid fa-chevron-left"></i></button>
 
     <!-- Top sections scroll as a group when the viewport is short,
          keeping the waypoints section (and its buttons) always visible. -->
@@ -2317,6 +2343,7 @@ function toggleSidebar() {
 }
 
 document.getElementById('sidebar-open-btn').addEventListener('click', openSidebar);
+document.getElementById('sidebar-close-btn').addEventListener('click', closeSidebar);
 document.getElementById('sidebar-backdrop').addEventListener('click', closeSidebar);
 
 /* ── Swipe to open/close sidebar (small screens) ── */
